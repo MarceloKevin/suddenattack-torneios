@@ -1,8 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  Search,
+  Trophy,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Team } from '../types';
-import { Crown, Medal, Search, Trophy, TrendingUp } from 'lucide-react';
+import rankingBg from '../assets/team-lineup-bg.jpg';
+import { RankingPodium } from '../components/ranking/RankingPodium';
 
 const isImageSrc = (value?: string) =>
   !!value && (value.startsWith('http') || value.startsWith('data:') || value.startsWith('/'));
@@ -14,295 +22,343 @@ const sortTeamsByRanking = (teams: Team[]) =>
     return b.stats.winRate - a.stats.winRate;
   });
 
-const TeamLogo: React.FC<{ logo: string; name: string; size?: 'sm' | 'md' | 'lg' | 'xl' }> = ({
-  logo,
-  name,
-  size = 'md',
-}) => {
-  const dim =
-    size === 'xl'
-      ? 'w-28 h-28 sm:w-36 sm:h-36'
-      : size === 'lg'
-        ? 'w-20 h-20 sm:w-24 sm:h-24'
-        : size === 'md'
-          ? 'w-12 h-12'
-          : 'w-9 h-9';
+type FilterKey = 'todos' | 'ascendendo' | 'titulos' | 'pontos';
 
-  return (
-    <div
-      className={`${dim} rounded-full overflow-hidden border-2 border-[#272B35] bg-[#181B23] flex items-center justify-center shrink-0`}
-    >
-      {isImageSrc(logo) ? (
-        <img src={logo} alt={name} className="w-full h-full object-cover" />
-      ) : (
-        <span className={size === 'xl' || size === 'lg' ? 'text-3xl' : 'text-lg'}>{logo}</span>
-      )}
-    </div>
-  );
-};
+const PAGE_SIZE = 7;
+const formatPts = (n: number) => n.toLocaleString('pt-BR');
 
-const PodiumCard: React.FC<{
-  team: Team;
-  place: 1 | 2 | 3;
-}> = ({ team, place }) => {
-  const config = {
-    1: {
-      order: 'order-1 sm:order-2',
-      height: 'sm:pt-2',
-      ring: 'ring-2 ring-amber-400/70',
-      placeText: 'text-amber-300',
-      bar: 'h-16 sm:h-24 bg-gradient-to-t from-amber-500/40 to-amber-400/10 border-amber-400/40',
-      label: '1º',
-      icon: <Crown className="w-4 h-4 text-amber-300" />,
-      logoSize: 'xl' as const,
-      nameSize: 'text-xl sm:text-2xl',
-    },
-    2: {
-      order: 'order-2 sm:order-1',
-      height: 'sm:pt-10',
-      ring: 'ring-2 ring-zinc-300/50',
-      placeText: 'text-zinc-200',
-      bar: 'h-12 sm:h-16 bg-gradient-to-t from-zinc-400/30 to-zinc-300/5 border-zinc-400/30',
-      label: '2º',
-      icon: <Medal className="w-4 h-4 text-zinc-300" />,
-      logoSize: 'lg' as const,
-      nameSize: 'text-lg sm:text-xl',
-    },
-    3: {
-      order: 'order-3 sm:order-3',
-      height: 'sm:pt-14',
-      ring: 'ring-2 ring-amber-700/60',
-      placeText: 'text-amber-600',
-      bar: 'h-10 sm:h-12 bg-gradient-to-t from-amber-800/35 to-amber-700/5 border-amber-700/35',
-      label: '3º',
-      icon: <Medal className="w-4 h-4 text-amber-600" />,
-      logoSize: 'lg' as const,
-      nameSize: 'text-lg sm:text-xl',
-    },
-  }[place];
 
-  return (
-    <div className={`flex flex-col items-center ${config.order} ${config.height}`}>
-      <Link
-        to={`/time/${team.id}`}
-        className="group flex flex-col items-center text-center w-full max-w-[220px]"
-      >
-        <span
-          className={`mb-3 text-5xl sm:text-6xl font-display font-bold tracking-tight leading-none drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] ${config.placeText}`}
-        >
-          {config.label}
-        </span>
-
-        <div className="relative mb-3">
-          <div className={`rounded-full ${config.ring} p-0.5`}>
-            <TeamLogo logo={team.logo} name={team.name} size={config.logoSize} />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 mb-1">
-          {config.icon}
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#9298A5]">
-            [{team.tag}]
-          </span>
-        </div>
-        <h3
-          className={`${config.nameSize} font-display uppercase tracking-wide text-white group-hover:text-[#E31B23] transition-colors leading-tight`}
-        >
-          {team.name}
-        </h3>
-        <p className="mt-3 text-sm sm:text-base font-mono">
-          <span className="text-white font-bold text-base sm:text-lg">{team.stats.points}</span>
-          <span className="text-[#9298A5]"> pts</span>
-          <span className="text-[#9298A5] mx-1.5">·</span>
-          <span className="text-white font-bold text-base sm:text-lg">{team.stats.titles}</span>
-          <span className="text-[#9298A5]">
-            {' '}
-            {team.stats.titles === 1 ? 'título' : 'títulos'}
-          </span>
-        </p>
-      </Link>
-
-      <div className={`mt-4 w-full max-w-[200px] border-t ${config.bar}`} />
-    </div>
-  );
-};
+const TableLogo: React.FC<{ logo: string; name: string }> = ({ logo, name }) => (
+  <div className="w-[42px] h-[42px] rounded-full overflow-hidden border border-white/15 bg-[#0A1520] flex items-center justify-center shrink-0">
+    {isImageSrc(logo) ? (
+      <img src={logo} alt={name} className="w-full h-full object-cover" />
+    ) : (
+      <span className="text-sm">{logo}</span>
+    )}
+  </div>
+);
 
 export const Ranking: React.FC = () => {
   const { teams, currentTeam } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState<FilterKey>('todos');
+  const [page, setPage] = useState(1);
 
   const ranked = useMemo(() => sortTeamsByRanking(teams), [teams]);
-  const top3 = ranked.slice(0, 3);
-  const first = top3[0];
-  const second = top3[1];
-  const third = top3[2];
+  const first = ranked[0];
+  const second = ranked[1];
+  const third = ranked[2];
 
   const filteredRanked = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return ranked.map((team, index) => ({ team, place: index + 1 }));
-    return ranked
-      .map((team, index) => ({ team, place: index + 1 }))
-      .filter(
+    let list = ranked.map((team, index) => ({ team, place: index + 1 }));
+
+    if (query) {
+      list = list.filter(
         ({ team }) =>
           team.name.toLowerCase().includes(query) ||
           team.tag.toLowerCase().includes(query)
       );
-  }, [ranked, searchTerm]);
+    }
+
+    if (filter === 'titulos') {
+      list = [...list].sort((a, b) => b.team.stats.titles - a.team.stats.titles);
+    } else if (filter === 'ascendendo') {
+      list = [...list].sort((a, b) => a.team.stats.winRate - b.team.stats.winRate);
+    }
+
+    return list;
+  }, [ranked, searchTerm, filter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRanked.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filteredRanked.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const filters: { key: FilterKey; label: string }[] = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'ascendendo', label: 'Ascendendo' },
+    { key: 'titulos', label: 'TÃ­tulos' },
+    { key: 'pontos', label: 'Pontos' },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 text-left">
-      <div className="pb-6 border-b border-[#272B35]">
-        <span className="text-xs font-mono uppercase tracking-widest text-[#E31B23] font-bold flex items-center gap-1.5">
-          <TrendingUp className="w-3.5 h-3.5" />
-          Clãs competitivos
-        </span>
-        <h1 className="text-3xl sm:text-5xl font-display uppercase tracking-wide text-white mt-1">
-          Ranking
-        </h1>
-        <p className="text-xs sm:text-sm text-[#9298A5] mt-1 max-w-xl">
-          Classificação oficial dos times ordenada pela quantidade de pontos.
-        </p>
-      </div>
+    <div className="relative min-h-[calc(100vh-4rem)]">
+      {/* Full-page cinematic background */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-no-repeat"
+        style={{
+          backgroundImage: `url(${rankingBg})`,
+          backgroundPosition: 'center top',
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(3,15,24,0.35) 0%, rgba(3,15,24,0.55) 50%, rgba(3,15,24,0.82) 100%)',
+        }}
+        aria-hidden
+      />
 
-      {/* PÓDIO */}
-      {top3.length > 0 && (
-        <section className="relative overflow-hidden border border-[#272B35] bg-gradient-to-b from-[#181B23] via-[#13161D] to-[#0E1016] px-4 sm:px-8 pt-10 pb-6">
-          <div className="absolute inset-0 tactical-grid opacity-30 pointer-events-none" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[360px] h-[160px] bg-amber-400/10 blur-[80px] rounded-full pointer-events-none" />
-
-          <div className="relative text-center mb-8">
-            <span className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-amber-300/90">
-              <Trophy className="w-3.5 h-3.5" />
-              Top 3 da temporada da temporada 01
-            </span>
-          </div>
-
-          <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 items-end justify-items-center">
-            {second && <PodiumCard team={second} place={2} />}
-            {first && <PodiumCard team={first} place={1} />}
-            {third && <PodiumCard team={third} place={3} />}
-          </div>
-        </section>
-      )}
-
-      {/* LISTA */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#272B35] pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5 min-w-0 flex-1">
-            <div className="shrink-0">
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#E31B23]">
-                Classificação geral
+      <div className="relative z-10 max-w-[1200px] mx-auto px-[34px] py-8 sm:py-10 space-y-7 text-left">
+        {/* Header */}
+        <header className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#FF174F]">
+                Clubes competitivos
               </span>
-              <h2 className="text-xl sm:text-2xl font-display uppercase tracking-wide text-white mt-1">
-                Todos os clãs
+              <span className="h-px w-10 bg-[#FF174F]" aria-hidden />
+            </div>
+            <h1 className="mt-2 font-display text-[40px] font-black uppercase tracking-wide text-white leading-[0.95]">
+              Ranking
+            </h1>
+            <p className="mt-2.5 text-[13px] sm:text-[14px] text-[#9BB4C5] max-w-xl">
+              ClassificaÃ§Ã£o oficial dos times ordenada pela quantidade de pontos.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-wide text-[#8EA9BB]">
+              <span className="inline-flex items-center gap-1.5 text-[#00B4DC]">
+                <Trophy className="w-3.5 h-3.5" aria-hidden />
+                Ranking oficial
+              </span>
+              <span className="text-[#4A6070]">Â·</span>
+              <span>Temporada 2026</span>
+            </div>
+          </div>
+
+          <div
+            className="shrink-0 inline-flex items-center rounded-full px-3.5 py-1.5 text-[12px] font-extrabold tabular-nums"
+            style={{
+              color: '#FF174F',
+              border: '1px solid #FF174F',
+              background: 'rgba(255,23,79,0.04)',
+            }}
+          >
+            5/5
+          </div>
+        </header>
+        <RankingPodium first={first} second={second} third={third} />
+
+
+        {/* Classification */}
+        <section className="space-y-4">
+          <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#FF174F]">
+                ClassificaÃ§Ã£o geral
+              </span>
+              <h2 className="mt-1 font-display text-[22px] sm:text-[26px] font-black uppercase tracking-wide text-white leading-none">
+                Todos os clubes
               </h2>
             </div>
-            <div className="relative w-full sm:max-w-xs sm:mb-0.5">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9298A5] pointer-events-none" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Pesquisar time..."
-                className="w-full bg-[#0E1016] border border-[#272B35] pl-9 pr-3 py-2 text-sm text-[#F5F5F5] placeholder-[#9298A5]/50 focus:border-[#E31B23] focus:outline-none focus:ring-1 focus:ring-[#E31B23] transition-colors"
-              />
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative w-full sm:w-[260px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00B4DC] pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Pesquisar time..."
+                  className="w-full rounded-xl bg-[rgba(3,15,24,0.85)] border border-[rgba(0,180,220,0.25)] pl-9 pr-3 py-2.5 text-sm text-white placeholder-[#6B8494] focus:border-[#FF174F]/50 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {filters.map((f) => {
+                  const active = filter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => {
+                        setFilter(f.key);
+                        setPage(1);
+                      }}
+                      className={`px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        active
+                          ? 'bg-[#FF174F] text-white border border-[#FF174F]'
+                          : 'bg-[rgba(3,15,24,0.7)] text-[#9BB4C5] border border-white/15 hover:border-white/30'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-          <span className="text-[10px] font-mono uppercase text-[#9298A5] shrink-0">
-            {filteredRanked.length} {filteredRanked.length === 1 ? 'time' : 'times'}
-          </span>
-        </div>
 
-        <div className="bg-[#13161D] border border-[#272B35] overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-[#0E1016] border-b border-[#272B35] text-[10px] font-mono uppercase tracking-wider text-[#9298A5]">
-              <tr>
-                <th className="py-3 px-4 w-16">#</th>
-                <th className="py-3 px-4">Clã</th>
-                <th className="py-3 px-4 text-center">Pontos</th>
-                <th className="py-3 px-4 text-center">Títulos</th>
-                <th className="py-3 px-4 text-center">Partidas</th>
-                <th className="py-3 px-4 text-center">V / D</th>
-                <th className="py-3 px-4 text-right">Win rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#272B35]/60">
-              {filteredRanked.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-10 px-4 text-center text-sm text-[#9298A5]">
-                    Nenhum time encontrado para “{searchTerm.trim()}”.
-                  </td>
-                </tr>
-              ) : (
-                filteredRanked.map(({ team, place }) => {
-                const isOwn = currentTeam?.id === team.id;
-                const placeTone =
-                  place === 1
-                    ? 'text-amber-300'
-                    : place === 2
-                      ? 'text-zinc-300'
-                      : place === 3
-                        ? 'text-amber-600'
-                        : 'text-[#9298A5]';
+          {/* Table */}
+          <div
+            className="rounded-[15px] overflow-hidden"
+            style={{
+              background: 'rgba(3,15,24,0.78)',
+              border: '1px solid rgba(0,180,220,0.35)',
+            }}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap min-w-[740px]">
+                <thead>
+                  <tr className="border-b border-[rgba(0,180,220,0.15)] text-[10px] font-bold uppercase tracking-[0.14em] text-[#8EA9BB]">
+                    <th className="py-3.5 px-5 w-16">Pos</th>
+                    <th className="py-3.5 px-4">Clube</th>
+                    <th className="py-3.5 px-4 text-center">Pontos</th>
+                    <th className="py-3.5 px-4 text-center">TÃ­tulos</th>
+                    <th className="py-3.5 px-4 text-center">Partidas</th>
+                    <th className="py-3.5 px-4 text-center">V / D</th>
+                    <th className="py-3.5 px-5 text-right">Win rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 px-4 text-center text-sm text-[#8EA9BB]">
+                        Nenhum time encontrado para â€œ{searchTerm.trim()}â€.
+                      </td>
+                    </tr>
+                  ) : (
+                    pageItems.map(({ team, place }) => {
+                      const isOwn = currentTeam?.id === team.id;
+                      const crownColor =
+                        place === 1
+                          ? 'text-[#FFC107]'
+                          : place === 2
+                            ? 'text-zinc-300'
+                            : place === 3
+                              ? 'text-orange-400'
+                              : '';
 
-                return (
-                  <tr
-                    key={team.id}
-                    className={`transition-colors ${
-                      isOwn
-                        ? 'bg-[#E31B23]/10 hover:bg-[#E31B23]/15'
-                        : place <= 3
-                          ? 'bg-[#181B23]/80 hover:bg-[#1c2029]'
-                          : 'hover:bg-[#181B23]/70'
+                      return (
+                        <tr
+                          key={team.id}
+                          className="border-t border-[rgba(0,180,220,0.08)]"
+                          style={
+                            isOwn
+                              ? {
+                                  background: 'rgba(255,23,79,0.10)',
+                                  boxShadow: 'inset 0 0 0 1px rgba(255,23,79,0.7)',
+                                }
+                              : undefined
+                          }
+                        >
+                          <td className="py-3.5 px-5 font-extrabold tabular-nums text-[#F5F7FA]">
+                            <span className="inline-flex items-center gap-1.5">
+                              {place <= 3 && (
+                                <Crown className={`w-3.5 h-3.5 ${crownColor}`} aria-hidden />
+                              )}
+                              {String(place).padStart(2, '0')}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <Link
+                              to={`/time/${team.id}`}
+                              className="flex items-center gap-3 group min-w-0"
+                            >
+                              <TableLogo logo={team.logo} name={team.name} />
+                              <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-white group-hover:text-[#FF174F] transition-colors truncate">
+                                    {team.name}
+                                  </p>
+                                  <p className="text-[11px] font-medium text-[#8299AA]">
+                                    [{team.tag}]
+                                  </p>
+                                </div>
+                                {isOwn && (
+                                  <span className="inline-flex px-2 py-0.5 rounded-full bg-[#FF174F] text-[9px] font-extrabold uppercase tracking-wider text-white">
+                                    Seu time
+                                  </span>
+                                )}
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-extrabold text-white tabular-nums">
+                            {formatPts(team.stats.points)}
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-semibold text-white tabular-nums">
+                            {team.stats.titles}
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-medium text-[#9BB4C5] tabular-nums">
+                            {team.stats.matches}
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-semibold text-xs tabular-nums">
+                            <span className="text-[#00B4DC]">{team.stats.wins}</span>
+                            <span className="text-[#5A7080]"> / </span>
+                            <span className="text-[#FF174F]">{team.stats.losses}</span>
+                          </td>
+                          <td className="py-3.5 px-5 text-right">
+                            <div className="inline-flex flex-col items-end gap-1.5 min-w-[92px]">
+                              <span className="font-extrabold text-white tabular-nums text-sm">
+                                {team.stats.winRate.toFixed(1)}%
+                              </span>
+                              <div className="w-full h-1 rounded-full bg-white/[0.08] overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-[#00B4DC]"
+                                  style={{
+                                    width: `${Math.max(0, Math.min(100, team.stats.winRate))}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-[rgba(0,180,220,0.12)]">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="w-8 h-8 rounded-lg border border-white/15 bg-[rgba(3,15,24,0.9)] text-[#9BB4C5] flex items-center justify-center disabled:opacity-40"
+                  aria-label="PÃ¡gina anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setPage(n)}
+                    className={`w-8 h-8 rounded-lg text-xs font-bold ${
+                      n === currentPage
+                        ? 'bg-[#FF174F] text-white'
+                        : 'border border-white/15 bg-[rgba(3,15,24,0.9)] text-[#9BB4C5]'
                     }`}
                   >
-                    <td className={`py-3.5 px-4 font-display font-bold text-sm ${placeTone}`}>
-                      {place}º
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Link
-                        to={`/time/${team.id}`}
-                        className="flex items-center gap-3 group min-w-0"
-                      >
-                        <TeamLogo logo={team.logo} name={team.name} size="sm" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white group-hover:text-[#E31B23] transition-colors truncate">
-                            {team.name}
-                            {isOwn && (
-                              <span className="ml-2 text-[9px] font-mono uppercase tracking-wider text-[#E31B23]">
-                                Seu time
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] font-mono text-[#9298A5]">[{team.tag}]</p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
-                      {team.stats.points.toLocaleString('pt-BR')}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-mono text-white">
-                      {team.stats.titles}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-mono text-zinc-300">
-                      {team.stats.matches}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-mono text-xs">
-                      <span className="text-emerald-400">{team.stats.wins}</span>
-                      <span className="text-[#9298A5]"> / </span>
-                      <span className="text-red-400">{team.stats.losses}</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
-                      {team.stats.winRate.toFixed(1)}%
-                    </td>
-                  </tr>
-                );
-              })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="w-8 h-8 rounded-lg border border-white/15 bg-[rgba(3,15,24,0.9)] text-[#9BB4C5] flex items-center justify-center disabled:opacity-40"
+                  aria-label="PrÃ³xima pÃ¡gina"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <span className="text-[11px] text-[#8EA9BB]">
+                {filteredRanked.length} de {ranked.length} times
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 };

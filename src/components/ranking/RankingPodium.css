@@ -1,0 +1,540 @@
+/* ═══════════════════════════════════════════════════════════
+   RankingPodium — championship esports podium composition
+   ═══════════════════════════════════════════════════════════ */
+
+.ranking-podium {
+  position: relative;
+  width: 100%;
+  height: 470px;
+  min-height: 470px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 190, 220, 0.45);
+  background: rgba(3, 16, 25, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Background effects ── */
+
+.podium-background-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.podium-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    135deg,
+    rgba(100, 180, 210, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 42px 42px;
+}
+
+.podium-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.podium-bg-glow--center {
+  left: 50%;
+  top: 55%;
+  width: 420px;
+  height: 420px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 193, 7, 0.18) 0%,
+    rgba(0, 220, 210, 0.06) 28%,
+    transparent 55%
+  );
+}
+
+.podium-bg-glow--left {
+  left: 12%;
+  top: 58%;
+  width: 260px;
+  height: 260px;
+  transform: translate(-20%, -50%);
+  background: radial-gradient(circle, rgba(140, 190, 220, 0.14) 0%, transparent 65%);
+}
+
+.podium-bg-glow--right {
+  right: 12%;
+  top: 58%;
+  width: 260px;
+  height: 260px;
+  transform: translate(20%, -50%);
+  background: radial-gradient(circle, rgba(230, 105, 40, 0.14) 0%, transparent 65%);
+}
+
+.podium-bg-divider {
+  position: absolute;
+  top: 12%;
+  bottom: 8%;
+  width: 1px;
+  background: rgba(120, 160, 180, 0.08);
+}
+
+.podium-bg-divider--left {
+  left: 33.5%;
+}
+
+.podium-bg-divider--right {
+  left: 66.5%;
+}
+
+/* ── Positions ── */
+
+.podium-position {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.podium-position__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  overflow: visible;
+  transition: transform 0.2s ease;
+}
+
+.podium-position__content:hover {
+  transform: scale(1.02);
+}
+
+.podium-first {
+  left: 50%;
+  bottom: 0;
+  width: 330px;
+  transform: translateX(-50%);
+  /* below laterals so the glow never covers 2nd/3rd */
+  z-index: 2;
+}
+
+.podium-second {
+  left: 17%;
+  bottom: 12px;
+  width: 250px;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+.podium-third {
+  right: 17%;
+  bottom: 12px;
+  width: 250px;
+  transform: translateX(50%);
+  z-index: 4;
+}
+
+/* Lift champion content; pedestal rises into this space behind text */
+.podium-first .podium-position__content {
+  margin-bottom: 8px;
+  padding-bottom: 132px;
+  z-index: 3;
+}
+
+.podium-second .podium-position__content,
+.podium-third .podium-position__content {
+  margin-top: 38px;
+  padding-bottom: 120px;
+  z-index: 3;
+}
+
+/* ── Crown badge (1st place asset) ── */
+
+.podium-1st-badge {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: auto;
+  height: 72px;
+  max-width: 200px;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(255, 193, 7, 0.35));
+}
+
+.podium-2nd-badge {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: auto;
+  height: 58px;
+  max-width: 160px;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(140, 190, 220, 0.4));
+}
+
+.podium-3rd-badge {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: auto;
+  height: 58px;
+  max-width: 160px;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(244, 123, 56, 0.4));
+}
+
+@media (min-width: 640px) {
+  .podium-1st-badge {
+    height: 84px;
+    max-width: 220px;
+    margin-bottom: 10px;
+  }
+
+  .podium-2nd-badge {
+    height: 68px;
+    max-width: 180px;
+    margin-bottom: 10px;
+  }
+
+  .podium-3rd-badge {
+    height: 68px;
+    max-width: 180px;
+    margin-bottom: 10px;
+  }
+}
+
+/* ── Rank number + decorative curves (2º / 3º) ── */
+
+.podium-rank {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  min-width: 110px;
+}
+
+.podium-rank__num {
+  font-weight: 900;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.podium-first .podium-rank__num {
+  font-size: 46px;
+  color: #ffc107;
+  text-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+}
+
+.podium-second .podium-rank__num {
+  font-size: 38px;
+  color: #e5e8ec;
+  text-shadow: 0 0 12px rgba(200, 220, 235, 0.2);
+}
+
+.podium-third .podium-rank__num {
+  font-size: 38px;
+  color: #f47b38;
+  text-shadow: 0 0 12px rgba(244, 123, 56, 0.25);
+}
+
+.podium-rank__deco {
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 18px;
+  border-style: solid;
+  border-color: currentColor;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.podium-first .podium-rank__deco {
+  color: #ffc107;
+}
+
+.podium-second .podium-rank__deco {
+  color: #c8d4de;
+}
+
+.podium-third .podium-rank__deco {
+  color: #f47b38;
+}
+
+.podium-rank__deco--left {
+  right: calc(50% + 28px);
+  border-width: 1.5px 0 0 1.5px;
+  border-radius: 14px 0 0 0;
+  transform: translateY(-30%) rotate(-8deg);
+}
+
+.podium-rank__deco--right {
+  left: calc(50% + 28px);
+  border-width: 1.5px 1.5px 0 0;
+  border-radius: 0 14px 0 0;
+  transform: translateY(-30%) rotate(8deg);
+}
+
+/* ── Emblem / logo medal ── */
+
+.podium-emblem {
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.podium-emblem--1 {
+  width: 108px;
+  height: 108px;
+  overflow: visible;
+  border-radius: 0;
+}
+
+.podium-emblem--2,
+.podium-emblem--3 {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+}
+
+.podium-emblem__ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.podium-emblem--2 .podium-emblem__ring {
+  border: 2px solid rgba(185, 197, 208, 0.55);
+}
+
+.podium-emblem--3 .podium-emblem__ring {
+  border: 2px solid rgba(244, 123, 56, 0.55);
+}
+
+.podium-emblem__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(8, 38, 43, 0.95), rgba(2, 15, 22, 0.98));
+}
+
+.podium-emblem--1 .podium-emblem__inner {
+  border: 2px solid rgba(255, 193, 7, 0.85);
+  box-shadow: 0 0 18px rgba(0, 220, 210, 0.15);
+}
+
+.podium-emblem--2 .podium-emblem__inner {
+  border: 2px solid #b9c5d0;
+  box-shadow: 0 0 20px rgba(180, 210, 230, 0.12);
+}
+
+.podium-emblem--3 .podium-emblem__inner {
+  border: 2px solid #f47b38;
+  box-shadow: 0 0 20px rgba(244, 123, 56, 0.12);
+}
+
+.podium-emblem__inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.podium-emblem__emoji {
+  font-size: 2rem;
+}
+
+/* ── Typography block ── */
+
+.podium-team-name,
+.podium-team-tag,
+.podium-points,
+.podium-titles {
+  position: relative;
+  z-index: 2;
+}
+
+.podium-team-name {
+  margin: 10px 0 0;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: 'Bebas Neue', 'Teko', impact, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f5f7fa;
+  line-height: 1.1;
+}
+
+.podium-first .podium-team-name {
+  font-size: 20px;
+}
+
+.podium-team-tag {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #72899a;
+}
+
+.podium-points {
+  margin: 8px 0 0;
+  font-weight: 900;
+  color: #f5f7fa;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.podium-first .podium-points {
+  font-size: 25px;
+}
+
+.podium-second .podium-points,
+.podium-third .podium-points {
+  font-size: 21px;
+}
+
+.podium-points span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8196a5;
+}
+
+.podium-titles {
+  margin: 6px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8b6c0;
+}
+
+.podium-first .podium-titles {
+  color: #ffc107;
+}
+
+.podium-titles__icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Pedestals (image assets) ── */
+
+.podium-pedestal {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.podium-pedestal--1-img,
+.podium-pedestal--2-img,
+.podium-pedestal--3-img {
+  height: auto;
+  object-fit: contain;
+  object-position: bottom center;
+  background: none;
+  clip-path: none;
+  box-shadow: none;
+  z-index: 0;
+  /* always behind badge / logo / name / points */
+}
+
+.podium-pedestal--1-img {
+  bottom: 88px;
+  width: 360px;
+  max-width: min(100%, 380px);
+}
+
+.podium-pedestal--2-img,
+.podium-pedestal--3-img {
+  bottom: 72px;
+  width: 280px;
+  max-width: min(100%, 300px);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 900px) {
+  .ranking-podium {
+    height: auto;
+    min-height: 0;
+    padding: 28px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .podium-background-effects {
+    display: none;
+  }
+
+  .podium-position {
+    position: relative;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .podium-first {
+    order: 1;
+  }
+
+  .podium-second {
+    order: 2;
+  }
+
+  .podium-third {
+    order: 3;
+  }
+
+  .podium-first .podium-position__content,
+  .podium-second .podium-position__content,
+  .podium-third .podium-position__content {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-bottom: 108px;
+  }
+
+  .podium-pedestal--1-img {
+    bottom: 64px;
+    width: 280px;
+    height: auto;
+    z-index: 0;
+  }
+
+  .podium-pedestal--2-img,
+  .podium-pedestal--3-img {
+    bottom: 52px;
+    width: 240px;
+    height: auto;
+    z-index: 0;
+  }
+}

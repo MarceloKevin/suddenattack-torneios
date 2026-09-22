@@ -1,4 +1,9 @@
 import { User, Team, Tournament, RecentMatch } from '../types';
+import player1Avatar from '../assets/players/player-1.webp';
+import player2Avatar from '../assets/players/player-2.webp';
+import player3Avatar from '../assets/players/player-3.webp';
+import player4Avatar from '../assets/players/player-4.webp';
+import player5Avatar from '../assets/players/player-5.webp';
 
 export const MOCK_USERS: User[] = [
   {
@@ -6,7 +11,7 @@ export const MOCK_USERS: User[] = [
     name: 'Marcelo Kevin',
     nickname: 'KEVUZIN',
     email: 'marcelo.kevin@suddenattack.com',
-    avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80',
+    avatar: player1Avatar,
     status: 'online',
     role: 'captain',
     isAdmin: true,
@@ -27,7 +32,7 @@ export const MOCK_USERS: User[] = [
     name: 'Gabriel Santos',
     nickname: 'SNIPER_VIPER',
     email: 'viper@suddenattack.com',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+    avatar: player2Avatar,
     status: 'in-game',
     role: 'player',
     isAdmin: false,
@@ -48,7 +53,7 @@ export const MOCK_USERS: User[] = [
     name: 'Lucas Rocha',
     nickname: 'GHOST_BR',
     email: 'ghost@suddenattack.com',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+    avatar: player3Avatar,
     status: 'online',
     role: 'player',
     isAdmin: false,
@@ -69,7 +74,7 @@ export const MOCK_USERS: User[] = [
     name: 'Felipe Mendes',
     nickname: 'RED_BULLET',
     email: 'red@suddenattack.com',
-    avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&auto=format&fit=crop&q=80',
+    avatar: player4Avatar,
     status: 'offline',
     role: 'player',
     isAdmin: false,
@@ -90,7 +95,7 @@ export const MOCK_USERS: User[] = [
     name: 'Thiago Moura',
     nickname: 'SHADOW_SA',
     email: 'shadow@suddenattack.com',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    avatar: player5Avatar,
     status: 'online',
     role: 'player',
     isAdmin: false,
@@ -154,7 +159,7 @@ export const MOCK_TEAMS: Team[] = [
         userId: 'user-1',
         nickname: 'KEVUZIN',
         name: 'Marcelo Kevin',
-        avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80',
+        avatar: player1Avatar,
         role: 'CAPITÃO',
         rosterSlot: 'LINEUP',
         inGameRole: 'SNA',
@@ -166,7 +171,7 @@ export const MOCK_TEAMS: Team[] = [
         userId: 'user-2',
         nickname: 'SNIPER_VIPER',
         name: 'Gabriel Santos',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatar: player2Avatar,
         role: 'PLAYER',
         rosterSlot: 'LINEUP',
         inGameRole: 'SNA',
@@ -178,7 +183,7 @@ export const MOCK_TEAMS: Team[] = [
         userId: 'user-3',
         nickname: 'GHOST_BR',
         name: 'Lucas Rocha',
-        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+        avatar: player3Avatar,
         role: 'PLAYER',
         rosterSlot: 'LINEUP',
         inGameRole: 'RIFLE',
@@ -190,7 +195,7 @@ export const MOCK_TEAMS: Team[] = [
         userId: 'user-4',
         nickname: 'RED_BULLET',
         name: 'Felipe Mendes',
-        avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&auto=format&fit=crop&q=80',
+        avatar: player4Avatar,
         role: 'PLAYER',
         rosterSlot: 'LINEUP',
         inGameRole: 'RIFLE',
@@ -202,7 +207,7 @@ export const MOCK_TEAMS: Team[] = [
         userId: 'user-5',
         nickname: 'SHADOW_SA',
         name: 'Thiago Moura',
-        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+        avatar: player5Avatar,
         role: 'PLAYER',
         rosterSlot: 'LINEUP',
         inGameRole: 'RIFLE',
