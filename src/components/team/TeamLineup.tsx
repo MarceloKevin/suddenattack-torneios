@@ -1,7 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Crown } from 'lucide-react';
 import { TeamMember } from '../../types';
 import { getRosterSlot } from '../../utils/rosterHelpers';
+import { paths } from '../../utils/paths';
 import { BrazilFlag } from './shared';
 import lineupBg from '../../assets/team-lineup-bg.jpg';
 
@@ -99,7 +101,12 @@ const PlayerPortrait: React.FC<{
             )}
             <BrazilFlag className="w-[16px] h-[11px]" />
             <h3 className="text-[17px] sm:text-[19px] lg:text-[20px] font-extrabold uppercase tracking-wide text-white leading-none">
-              {member.nickname}
+              <Link
+                to={paths.player(member.userId)}
+                className="hover:text-[#2DD4BF] transition-colors"
+              >
+                {member.nickname}
+              </Link>
             </h3>
           </div>
 

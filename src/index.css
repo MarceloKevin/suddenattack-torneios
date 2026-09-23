@@ -2,25 +2,25 @@
 
 @layer base {
   :root {
-    --bg-primary: #08090D;
-    --bg-secondary: #0E1016;
-    --card-primary: #13161D;
-    --card-secondary: #181B23;
-    --border-color: #272B35;
-    --accent-red: #E31B23;
+    --bg-primary: #050608;
+    --bg-secondary: #08090C;
+    --card-primary: #0B0D11;
+    --card-secondary: #13161D;
+    --border-color: #252932;
+    --accent-red: #ED1C24;
   }
 
   body {
-    background-color: #08090D;
-    color: #F5F5F5;
+    background-color: #050608;
+    color: #F2F2F2;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
   }
 }
 
 .font-display {
-  font-family: 'Bebas Neue', 'Teko', impact, sans-serif;
-  letter-spacing: 0.05em;
+  font-family: 'Barlow Condensed', 'Oswald', 'Teko', impact, sans-serif;
+  letter-spacing: 0.04em;
 }
 
 .font-hud {

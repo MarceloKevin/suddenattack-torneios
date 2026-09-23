@@ -2,8 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from './Logo';
 import { Trophy, Flame } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { paths } from '../../utils/paths';
 
 export const Footer: React.FC = () => {
+  const { currentTeam } = useAuth();
+  const teamHref = currentTeam ? paths.team(currentTeam.id) : '/time';
+
   return (
     <footer className="bg-[#08090D] border-t border-[#272B35] text-[#9298A5] pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,7 +39,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/time" className="hover:text-[#E31B23] transition-colors">
+                <Link to={teamHref} className="hover:text-[#E31B23] transition-colors">
                   Times & Clãs
                 </Link>
               </li>

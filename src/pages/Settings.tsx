@@ -12,6 +12,7 @@ import {
   UserSocialLinks,
   cleanSocialLinks,
 } from '../utils/socialNetworks';
+import { paths } from '../utils/paths';
 
 const DEFAULT_BANNER =
   'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1600&h=500&fit=crop&q=80';
@@ -283,9 +284,15 @@ export const Settings: React.FC = () => {
                 />
               </div>
               <p className="text-xs text-[#9298A5]">
+                Perfil canônico por ID:{' '}
+                <Link to={paths.player(currentUser.id)} className="text-[#E31B23] hover:underline">
+                  /perfil/{currentUser.id}
+                </Link>
+              </p>
+              <p className="text-xs text-[#9298A5]">
                 {customUrl
-                  ? `Seu perfil ficará em /perfil/${customUrl}`
-                  : 'Defina um link exclusivo para o seu perfil (mín. 3 caracteres).'}
+                  ? `Slug opcional (legado): /perfil/${customUrl}`
+                  : 'Slug opcional — o acesso principal é pelo ID do jogador.'}
               </p>
             </div>
             <div className="sm:col-span-2 space-y-1.5">
@@ -349,7 +356,7 @@ export const Settings: React.FC = () => {
         </Card>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-          <Link to={customUrl ? `/perfil/${customUrl}` : '/perfil'}>
+          <Link to={paths.player(currentUser.id)}>
             <Button variant="outline" size="md" fullWidth type="button">
               VER PERFIL
             </Button>

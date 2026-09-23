@@ -26,6 +26,7 @@ import rankingBg from '../assets/ranking-bg.png';
 import saelLogo from '../assets/sael-logo.png';
 import { resolveTeamLogo } from '../utils/teamLogo';
 import { isImageSrc } from '../components/profile/shared';
+import { paths } from '../utils/paths';
 import '../components/tournament/TournamentDetails.css';
 
 type TournamentTab = 'geral' | 'teams' | 'tabela' | 'bracket' | 'partidas' | 'rules';
@@ -63,14 +64,17 @@ export const TournamentDetails: React.FC = () => {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
 
-  const tournament = tournaments.find((t) => t.id === id) || tournaments[0];
-  const groups = tournament.groups ?? [];
+  const tournament = tournaments.find((t) => t.id === id);
+  const groups = tournament?.groups ?? [];
   const confirmedTeams = useMemo(
-    () => getConfirmedTeams(tournament.registeredTeams),
+    () => getConfirmedTeams(tournament?.registeredTeams ?? []),
     [tournament]
   );
-  const allMatches = useMemo(() => getTournamentMatches(tournament), [tournament]);
-  const heroBg = tournament.banner || rankingBg;
+  const allMatches = useMemo(
+    () => (tournament ? getTournamentMatches(tournament) : []),
+    [tournament]
+  );
+  const heroBg = tournament?.banner || rankingBg;
 
   const handleRegisterTeam = () => {
     setRegisteredSuccess(true);
@@ -80,6 +84,22 @@ export const TournamentDetails: React.FC = () => {
       alert('Sua equipe foi confirmada na chave do torneio!');
     }, 1500);
   };
+
+  if (!tournament) {
+    return (
+      <div className="sa-td">
+        <div className="sa-td__inner" style={{ padding: '80px 24px', textAlign: 'center' }}>
+          <h1 className="font-display text-2xl text-white mb-2">Torneio não encontrado</h1>
+          <p className="text-[#8b98aa] text-sm mb-6">
+            Não existe um torneio com o ID &quot;{id}&quot;.
+          </p>
+          <Link to="/torneios" className="sa-td-back">
+            Voltar para torneios
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sa-td">
@@ -334,7 +354,14 @@ export const TournamentDetails: React.FC = () => {
 
                       <div className="sa-td-team__body">
                         <span className="sa-td-team__rank">#{rank}</span>
-                        <h3 className="sa-td-team__name font-display">{team.name}</h3>
+                        <h3 className="sa-td-team__name font-display">
+                          <Link
+                            to={paths.team(team.id)}
+                            className="hover:text-[#2DD4BF] transition-colors"
+                          >
+                            {team.name}
+                          </Link>
+                        </h3>
                         <p className="sa-td-team__meta">
                           <span className="sa-td-team__tag">[{team.tag}]</span>
                           <span className="sa-td-team__dot" aria-hidden>

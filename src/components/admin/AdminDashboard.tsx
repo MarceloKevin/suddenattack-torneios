@@ -19,6 +19,7 @@ import {
   getConfirmedTeams,
 } from '../../types';
 import rankingBg from '../../assets/ranking-bg.png';
+import { paths } from '../../utils/paths';
 import './AdminDashboard.css';
 
 type AdminTab = 'users' | 'tournaments';
@@ -380,7 +381,7 @@ export const AdminDashboard: React.FC = () => {
                           <td>
                             <div className="sa-admin-actions">
                               <Link
-                                to="/perfil"
+                                to={paths.player(user.id)}
                                 className="sa-admin-btn sa-admin-btn--ghost"
                                 title="Ver perfil"
                               >

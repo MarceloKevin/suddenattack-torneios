@@ -8,6 +8,7 @@ import podium3rdBadge from '../../assets/podium-3rd.png';
 import podium1stPedestal from '../../assets/podium-1st-pedestal.png';
 import podium2ndPedestal from '../../assets/podium-2nd-pedestal.png';
 import podium3rdPedestal from '../../assets/podium-3rd-pedestal.png';
+import { paths } from '../../utils/paths';
 import './RankingPodium.css';
 
 const isImageSrc = (value?: string) =>
@@ -46,7 +47,7 @@ const PositionBlock: React.FC<{
 
   return (
     <div className={`podium-position ${placeClass}`}>
-      <Link to={`/time/${team.id}`} className="podium-position__content">
+      <Link to={paths.team(team.id)} className="podium-position__content">
         {place === 1 ? (
           <img
             src={podium1stBadge}

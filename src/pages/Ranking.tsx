@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { Team } from '../types';
 import rankingBg from '../assets/ranking-bg.png';
 import { RankingPodium } from '../components/ranking/RankingPodium';
+import { paths } from '../utils/paths';
 
 const isImageSrc = (value?: string) =>
   !!value && (value.startsWith('http') || value.startsWith('data:') || value.startsWith('/'));
@@ -275,7 +276,7 @@ export const Ranking: React.FC = () => {
                           </td>
                           <td className="py-3.5 px-4">
                             <Link
-                              to={`/time/${team.id}`}
+                              to={paths.team(team.id)}
                               className="flex items-center gap-3 group min-w-0"
                             >
                               <TableLogo logo={team.logo} name={team.name} />

@@ -29,14 +29,18 @@ export const AppRoutes: React.FC = () => {
 
         {/* Rotas Autenticadas / Principais */}
         <Route path="/dashboard" element={<Dashboard />} />
+        {/* Perfil — acesso por ID do jogador */}
         <Route path="/perfil" element={<Profile />} />
-        <Route path="/perfil/:customUrl" element={<Profile />} />
+        <Route path="/perfil/:userId" element={<Profile />} />
+
         <Route path="/settings" element={<Settings />} />
+
+        {/* Time — /time (criar/buscar) e /time/:teamId (detalhe por ID) */}
         <Route path="/time" element={<TeamPage />} />
         <Route path="/time/:teamId" element={<TeamPage />} />
         <Route path="/ranking" element={<Ranking />} />
 
-        {/* Torneios */}
+        {/* Torneios — acesso por ID */}
         <Route path="/torneios" element={<TournamentsPage />} />
         <Route path="/torneios/:id" element={<TournamentDetails />} />
         <Route path="/torneios/:id/partidas/:matchId" element={<MatchDetails />} />

@@ -1,0 +1,536 @@
+/* ── Homepage — Sudden Attack (fidelidade à referência) ── */
+
+.sa-home {
+  --sa-black: #050608;
+  --sa-black-2: #08090c;
+  --sa-black-3: #0b0d11;
+  --sa-red: #ed1c24;
+  --sa-red-bright: #ff2028;
+  --sa-red-deep: #a51017;
+  --sa-white: #f2f2f2;
+  --sa-gray: #858b96;
+  --sa-gray-2: #555b66;
+  --sa-gray-3: #252932;
+  --sa-gray-4: #30343d;
+  --sa-container: 1650px;
+  background: var(--sa-black);
+  color: var(--sa-white);
+  padding-bottom: 72px;
+}
+
+.sa-home__container {
+  width: 100%;
+  max-width: var(--sa-container);
+  margin: 0 auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+/* ── Hero ── */
+
+.sa-home-hero {
+  position: relative;
+  min-height: 625px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  background-color: var(--sa-black);
+  isolation: isolate;
+}
+
+.sa-home-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(4, 5, 7, 1) 0%,
+      rgba(4, 5, 7, 0.95) 25%,
+      rgba(4, 5, 7, 0.65) 55%,
+      rgba(4, 5, 7, 0.15) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(5, 6, 8, 0.55) 0%,
+      rgba(5, 6, 8, 0.15) 40%,
+      rgba(5, 6, 8, 0.75) 100%
+    ),
+    url('../../assets/home-hero-bg.jpg');
+  background-size: cover;
+  background-position: 62% center;
+  background-repeat: no-repeat;
+  transform: scale(1.02);
+  animation: sa-home-hero- ken 18s ease-in-out infinite alternate;
+}
+
+.sa-home-hero__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 50% 70% at 78% 45%, rgba(237, 28, 36, 0.18), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 90% 80%, rgba(165, 16, 23, 0.25), transparent 65%);
+  pointer-events: none;
+}
+
+.sa-home-hero__noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.045;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.sa-home-hero__body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 28px;
+  min-height: 460px;
+}
+
+.sa-home-hero__content {
+  max-width: 620px;
+  animation: sa-home-fade-up 0.75s ease-out both;
+}
+
+.sa-home-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  color: var(--sa-red);
+  font-family: 'Barlow Condensed', 'Oswald', 'Teko', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.sa-home-hero__eyebrow-marks {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sa-home-hero__eyebrow-marks span {
+  display: block;
+  width: 14px;
+  height: 2px;
+  background: var(--sa-red);
+  transform: skewX(-28deg);
+  box-shadow: 0 0 8px rgba(237, 28, 36, 0.55);
+}
+
+.sa-home-hero__title {
+  margin: 0;
+  font-family: 'Barlow Condensed', 'Oswald', 'Teko', sans-serif;
+  font-weight: 900;
+  font-size: clamp(52px, 7.2vw, 80px);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--sa-white);
+}
+
+.sa-home-hero__title-line {
+  display: block;
+}
+
+.sa-home-hero__battle {
+  display: block;
+  margin-top: 4px;
+  margin-left: -8px;
+  line-height: 0;
+  max-width: min(100%, 600px);
+}
+
+.sa-home-hero__battle-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+  transform: rotate(-1.5deg);
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.65));
+  user-select: none;
+  pointer-events: none;
+}
+
+.sa-home-hero__desc {
+  margin: 22px 0 0;
+  max-width: 560px;
+  color: #d5d8de;
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.sa-home-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.sa-home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 22px;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 2px;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.sa-home-btn--primary {
+  background: var(--sa-red);
+  color: #fff;
+  border: 1px solid var(--sa-red);
+  box-shadow: 0 0 0 rgba(237, 28, 36, 0);
+}
+
+.sa-home-btn--primary:hover {
+  background: var(--sa-red-bright);
+  box-shadow: 0 0 22px rgba(237, 28, 36, 0.45);
+  transform: translateY(-1px);
+}
+
+.sa-home-btn--secondary {
+  background: transparent;
+  color: var(--sa-white);
+  border: 1px solid rgba(237, 28, 36, 0.55);
+}
+
+.sa-home-btn--secondary:hover {
+  border-color: var(--sa-red);
+  box-shadow: 0 0 16px rgba(237, 28, 36, 0.28);
+}
+
+.sa-home-hero__motto {
+  position: absolute;
+  right: 40px;
+  bottom: 118px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 242, 0.72);
+  pointer-events: none;
+}
+
+.sa-home-hero__motto-marks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sa-home-hero__motto-marks span {
+  width: 12px;
+  height: 2px;
+  background: var(--sa-red);
+  transform: skewX(-30deg);
+}
+
+/* ── Stats bar ── */
+
+.sa-home-stats {
+  position: relative;
+  z-index: 3;
+  background: rgba(5, 6, 8, 0.88);
+  border-top: 1px solid rgba(48, 52, 61, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.sa-home-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  min-height: 85px;
+}
+
+.sa-home-stats__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 8px;
+  position: relative;
+}
+
+.sa-home-stats__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 22%;
+  height: 56%;
+  width: 1px;
+  background: rgba(85, 91, 102, 0.45);
+}
+
+.sa-home-stats__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--sa-red);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(237, 28, 36, 0.35));
+}
+
+.sa-home-stats__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sa-home-stats__value {
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--sa-white);
+}
+
+.sa-home-stats__label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sa-gray);
+}
+
+/* ── Featured tournaments ── */
+
+.sa-home-featured {
+  padding-top: 56px;
+}
+
+.sa-home-featured__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.sa-home-featured__kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--sa-red);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.sa-home-featured__title {
+  margin: 0;
+  position: relative;
+  display: inline-block;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--sa-white);
+}
+
+.sa-home-featured__title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 56px;
+  height: 3px;
+  background: var(--sa-red);
+  box-shadow: 0 0 10px rgba(237, 28, 36, 0.5);
+}
+
+.sa-home-featured__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid #3a3d45;
+  border-radius: 2px;
+  color: var(--sa-white);
+  text-decoration: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.sa-home-featured__all:hover {
+  border-color: var(--sa-red);
+  box-shadow: 0 0 14px rgba(237, 28, 36, 0.25);
+}
+
+.sa-home-featured__cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* ── Animations ── */
+
+@keyframes sa-home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sa-home-hero-ken {
+  from {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-1.2%, 0.6%, 0);
+  }
+}
+
+@keyframes sa-home-sheen {
+  0%,
+  55% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1200px) {
+  .sa-home-featured__cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sa-home-hero__motto {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .sa-home__container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .sa-home-hero {
+    min-height: auto;
+  }
+
+  .sa-home-hero__body {
+    min-height: 420px;
+    padding-top: 36px;
+    padding-bottom: 28px;
+  }
+
+  .sa-home-hero__bg {
+    background-position: 70% center;
+  }
+
+  .sa-home-hero__title {
+    font-size: clamp(44px, 10vw, 64px);
+  }
+
+  .sa-home-hero__battle {
+    max-width: min(100%, 480px);
+    margin-left: -4px;
+  }
+
+  .sa-home-hero__battle-img {
+    max-width: 480px;
+  }
+
+  .sa-home-stats__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sa-home-stats__item:nth-child(2)::after {
+    display: none;
+  }
+
+  .sa-home-featured__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .sa-home-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sa-home-btn {
+    width: 100%;
+  }
+
+  .sa-home-hero__desc {
+    font-size: 15px;
+  }
+
+  .sa-home-hero__battle {
+    max-width: 100%;
+    margin-left: -2px;
+  }
+
+  .sa-home-hero__battle-img {
+    max-width: 100%;
+    transform: rotate(-1deg);
+  }
+
+  .sa-home-featured__cards {
+    grid-template-columns: 1fr;
+  }
+
+  .sa-home-stats__item {
+    padding: 16px 4px;
+  }
+
+  .sa-home-stats__value {
+    font-size: 24px;
+  }
+}

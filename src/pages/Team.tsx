@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { paths } from '../utils/paths';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -17,9 +18,6 @@ export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const { teamId } = useParams<{ teamId?: string }>();
   const { currentUser, currentTeam, teams, createTeam, leaveTeam, updateMemberRosterSlot, updateTeamProfile, recentMatches, tournaments } = useAuth();
-
-  const viewedTeam = teamId ? teams.find((t) => t.id === teamId) ?? null : currentTeam;
-  const isOwnTeam = !!viewedTeam && !!currentTeam && viewedTeam.id === currentTeam.id;
 
   // Form state for creating team
   const [newTeamName, setNewTeamName] = useState('');
@@ -44,6 +42,14 @@ export const TeamPage: React.FC = () => {
   const [editBanner, setEditBanner] = useState('');
   const [teamTab, setTeamTab] = useState<TeamTab>('geral');
 
+  // /time sem ID e com time → redireciona para /time/:teamId
+  if (!teamId && currentTeam) {
+    return <Navigate to={paths.team(currentTeam.id)} replace />;
+  }
+
+  const viewedTeam = teamId ? teams.find((t) => t.id === teamId) ?? null : currentTeam;
+  const isOwnTeam = !!viewedTeam && !!currentTeam && viewedTeam.id === currentTeam.id;
+
   const handleCreateTeamSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamName.trim() || !newTeamTag.trim()) {
@@ -56,13 +62,16 @@ export const TeamPage: React.FC = () => {
     }
 
     setFormError('');
-    createTeam({
+    const newId = createTeam({
       name: newTeamName,
       tag: newTeamTag,
       description: newTeamDesc || 'Time competitivo de Sudden Attack em busca da glória.',
       logo: newTeamLogo,
     });
     setFormSuccess('Time criado com sucesso!');
+    if (newId) {
+      setTimeout(() => navigate(paths.team(newId)), 600);
+    }
   };
 
   const handleJoinRequest = (teamId: string) => {

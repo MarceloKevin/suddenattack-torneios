@@ -14,6 +14,7 @@ import { RecentMatch, Team, User } from '../../types';
 import { EmptyState } from '../ui/EmptyState';
 import { FORMAT_TITLES, isImageSrc } from '../profile/shared';
 import rankingBg from '../../assets/ranking-bg.png';
+import { paths } from '../../utils/paths';
 import './Dashboard.css';
 
 const ROLE_LABEL: Record<User['role'], string> = {
@@ -87,7 +88,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Ver torneios
               <ArrowRight className="w-4 h-4" aria-hidden />
             </Link>
-            <Link to="/time" className="sa-dash-btn sa-dash-btn--secondary">
+            <Link
+              to={team ? paths.team(team.id) : '/time'}
+              className="sa-dash-btn sa-dash-btn--secondary"
+            >
               Meu time
             </Link>
           </div>
@@ -114,7 +118,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="min-w-0">
                   <div className="sa-dash-profile__nick-row">
                     <h2 className="sa-dash-profile__nick font-display">
-                      {user.nickname}
+                      <Link
+                        to={paths.player(user.id)}
+                        className="hover:text-[#2DD4BF] transition-colors"
+                      >
+                        {user.nickname}
+                      </Link>
                     </h2>
                     {user.isAdmin && <span className="sa-dash-badge">Admin</span>}
                   </div>
@@ -181,7 +190,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <h4 className="sa-dash-team__name font-display">{team.name}</h4>
+                  <h4 className="sa-dash-team__name font-display">
+                    <Link
+                      to={paths.team(team.id)}
+                      className="hover:text-[#2DD4BF] transition-colors"
+                    >
+                      {team.name}
+                    </Link>
+                  </h4>
                   <div className="sa-dash-team__roles">
                     <span>
                       Cargo: <strong>{teamRole}</strong>
@@ -212,7 +228,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               <div className="sa-dash-team__footer">
-                <Link to="/time" className="sa-dash-btn sa-dash-btn--block">
+                <Link to={paths.team(team.id)} className="sa-dash-btn sa-dash-btn--block">
                   Ver time completo
                   <ArrowRight className="w-4 h-4" aria-hidden />
                 </Link>

@@ -20,7 +20,7 @@ interface AuthContextType {
   toggleAdminState: () => void;
   switchUser: (userId: string) => void;
   // Team actions
-  createTeam: (teamData: { name: string; tag: string; description: string; logo: string }) => void;
+  createTeam: (teamData: { name: string; tag: string; description: string; logo: string }) => string | undefined;
   requestJoinTeam: (teamId: string) => void;
   leaveTeam: () => void;
   updateUserProfile: (
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createTeam = (teamData: { name: string; tag: string; description: string; logo: string }) => {
-    if (!currentUser) return;
+    if (!currentUser) return undefined;
     const newTeamId = `team-${Date.now()}`;
     const newTeam: Team = {
       id: newTeamId,
@@ -177,6 +177,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       teamId: newTeamId,
       role: 'captain',
     });
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === currentUser.id ? { ...u, teamId: newTeamId, role: 'captain' } : u
+      )
+    );
+    return newTeamId;
   };
 
   const requestJoinTeam = (teamId: string) => {

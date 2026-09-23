@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import '../components/match/MatchDetails.css';
 import { PlayedMaps } from '../components/match/PlayedMaps';
+import { paths } from '../utils/paths';
 
 const FALLBACK_AVATARS = [
   'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80',
@@ -216,7 +217,11 @@ const PlayerRow: React.FC<{
         )}
       </div>
       <div className="sa-match-player__body">
-        <p className="sa-match-player__nick">{player.nickname}</p>
+        <p className="sa-match-player__nick">
+          <Link to={paths.player(player.userId)} className="hover:text-[#2DD4BF] transition-colors">
+            {player.nickname}
+          </Link>
+        </p>
         <p className="sa-match-player__name">{player.name}</p>
       </div>
       <div className="sa-match-player__badges">
@@ -261,7 +266,7 @@ const TeamRosterCard: React.FC<{
         </div>
         <div className="sa-match-team__info">
           <h3 className="sa-match-team__name font-display">
-            <Link to={`/time/${teamId}`}>{teamName}</Link>
+            <Link to={paths.team(teamId)}>{teamName}</Link>
           </h3>
           {matchCompleted && (
             <span

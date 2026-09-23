@@ -9,7 +9,7 @@ export const MainLayout: React.FC = () => {
   const { currentUser } = useAuth();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#08090D] text-[#F5F5F5]">
+    <div className="min-h-screen flex flex-col bg-[#050608] text-[#F2F2F2]">
       <Header />
       <main className={`flex-1 min-w-0 ${currentUser ? 'lg:pr-[68px]' : ''}`}>
         <Outlet />

@@ -10,19 +10,22 @@ import {
   isImageSrc,
   readImageFile,
 } from './shared';
+import { paths } from '../../utils/paths';
 
 interface ProfileHeroProps {
   user: User;
   team: Team | null;
   teamRole: string;
-  onBannerChange: (dataUrl: string) => void;
-  onAvatarChange: (dataUrl: string) => void;
+  isEditable?: boolean;
+  onBannerChange?: (dataUrl: string) => void;
+  onAvatarChange?: (dataUrl: string) => void;
 }
 
 export const ProfileHero: React.FC<ProfileHeroProps> = ({
   user,
   team,
   teamRole,
+  isEditable = false,
   onBannerChange,
   onAvatarChange,
 }) => {
@@ -40,24 +43,25 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-[#07090D]/95 via-[#07090D]/75 to-[#07090D]/45" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#07090D] via-transparent to-black/20" />
 
-        <label className="absolute top-4 right-4 z-20 cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide rounded-lg bg-black/55 border border-white/15 text-white hover:border-[#E31B23] transition-colors">
-          <ImagePlus className="w-3.5 h-3.5 text-[#E31B23]" aria-hidden />
-          Banner
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            aria-label="Alterar banner"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              onBannerChange(await readImageFile(file));
-            }}
-          />
-        </label>
+        {isEditable && onBannerChange && (
+          <label className="absolute top-4 right-4 z-20 cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide rounded-lg bg-black/55 border border-white/15 text-white hover:border-[#E31B23] transition-colors">
+            <ImagePlus className="w-3.5 h-3.5 text-[#E31B23]" aria-hidden />
+            Banner
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Alterar banner"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                onBannerChange(await readImageFile(file));
+              }}
+            />
+          </label>
+        )}
 
         <div className="relative z-10 px-5 sm:px-8 py-6 sm:py-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8">
-          {/* Avatar + identity */}
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 flex-1 min-w-0">
             <div className="relative shrink-0">
               <div
@@ -75,20 +79,22 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
                   />
                 </div>
               </div>
-              <label className="absolute bottom-1.5 right-1.5 cursor-pointer w-9 h-9 rounded-full bg-[#E31B23] border-2 border-[#07090D] flex items-center justify-center hover:bg-[#ff2a32] transition-colors">
-                <Camera className="w-4 h-4 text-white" aria-hidden />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  aria-label="Alterar foto de perfil"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    onAvatarChange(await readImageFile(file));
-                  }}
-                />
-              </label>
+              {isEditable && onAvatarChange && (
+                <label className="absolute bottom-1.5 right-1.5 cursor-pointer w-9 h-9 rounded-full bg-[#E31B23] border-2 border-[#07090D] flex items-center justify-center hover:bg-[#ff2a32] transition-colors">
+                  <Camera className="w-4 h-4 text-white" aria-hidden />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    aria-label="Alterar foto de perfil"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      onAvatarChange(await readImageFile(file));
+                    }}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="text-center sm:text-left pb-1 space-y-2.5 min-w-0">
@@ -111,35 +117,38 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-[10px] font-mono uppercase tracking-wider text-[#8B93A7]">
                 <span>Membro desde: {user.joinedAt}</span>
                 <span className="hidden sm:inline text-[#2A3444]">•</span>
-                <span>ID. Conta: {accountId}</span>
+                <span>ID: {user.id}</span>
+                <span className="hidden sm:inline text-[#2A3444]">•</span>
+                <span>Conta: {accountId}</span>
               </div>
 
-              <div className="pt-1">
-                <Link to="/settings">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<Edit className="w-3.5 h-3.5" />}
-                    className="rounded-lg"
-                  >
-                    EDITAR PERFIL
-                  </Button>
-                </Link>
-              </div>
+              {isEditable && (
+                <div className="pt-1">
+                  <Link to="/settings">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<Edit className="w-3.5 h-3.5" />}
+                      className="rounded-lg"
+                    >
+                      EDITAR PERFIL
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Team card — right side of hero */}
           <div className="w-full lg:w-[280px] shrink-0">
             <div className="rounded-xl bg-[#0B0F15]/85 border border-[#1D2633] backdrop-blur-sm p-4">
               <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#E31B23] font-bold flex items-center gap-1.5 mb-3">
                 <Shield className="w-3 h-3" aria-hidden />
-                Meu time
+                {isEditable ? 'Meu time' : 'Time'}
               </span>
 
               {team ? (
                 <Link
-                  to={`/time/${team.id}`}
+                  to={paths.team(team.id)}
                   className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E31B23]/50 rounded-lg"
                 >
                   <div className="w-12 h-12 rounded-lg bg-[#10151D] border border-[#1D2633] overflow-hidden shrink-0 flex items-center justify-center">
@@ -160,6 +169,9 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
                       {team.name}
                     </p>
                     <p className="text-[10px] font-mono text-[#8B93A7] mt-0.5">
+                      ID: {team.id}
+                    </p>
+                    <p className="text-[10px] font-mono text-[#8B93A7] mt-0.5">
                       CARGO: <span className="text-cyan-300">{teamRole}</span>
                     </p>
                   </div>
@@ -167,11 +179,13 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
               ) : (
                 <div className="space-y-3">
                   <p className="text-xs text-[#8B93A7]">Sem time no momento.</p>
-                  <Link to="/time">
-                    <Button variant="outline" size="sm" fullWidth className="rounded-lg">
-                      ENCONTRAR TIME
-                    </Button>
-                  </Link>
+                  {isEditable && (
+                    <Link to="/time">
+                      <Button variant="outline" size="sm" fullWidth className="rounded-lg">
+                        ENCONTRAR TIME
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

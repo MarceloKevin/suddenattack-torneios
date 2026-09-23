@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Users } from 'lucide-react';
@@ -19,12 +20,15 @@ import {
 import { UpcomingTournaments } from '../components/profile/UpcomingTournaments';
 import { RecentMatchesTable } from '../components/profile/RecentMatchesTable';
 import { ProfileTab } from '../components/profile/shared';
+import { paths } from '../utils/paths';
 import rankingBg from '../assets/ranking-bg.png';
 
 export const Profile: React.FC = () => {
+  const { userId } = useParams<{ userId?: string }>();
   const {
     currentUser,
-    currentTeam,
+    users,
+    teams,
     recentMatches,
     tournaments,
     updateUserProfile,
@@ -32,39 +36,59 @@ export const Profile: React.FC = () => {
   const [feedback, setFeedback] = useState('');
   const [tab, setTab] = useState<ProfileTab>('overview');
 
+  const profileUser = useMemo(() => {
+    if (!userId) return null;
+    return users.find((u) => u.id === userId) ?? null;
+  }, [users, userId]);
+
+  const isOwnProfile = Boolean(currentUser && profileUser && currentUser.id === profileUser.id);
+
+  const profileTeam = useMemo(() => {
+    if (!profileUser?.teamId) return null;
+    return teams.find((t) => t.id === profileUser.teamId) ?? null;
+  }, [profileUser, teams]);
+
   const achievements = useMemo(() => {
-    const fromTeam = mapTeamHistoryToAchievements(currentTeam?.history);
+    const fromTeam = mapTeamHistoryToAchievements(profileTeam?.history);
     return fromTeam.length > 0 ? fromTeam : FALLBACK_ACHIEVEMENTS;
-  }, [currentTeam?.history]);
+  }, [profileTeam?.history]);
+
+  const profileMatches = isOwnProfile ? recentMatches : [];
 
   const activities = useMemo(() => {
-    const fromMatches = buildActivitiesFromMatches(recentMatches);
-    if (currentTeam) {
+    const fromMatches = buildActivitiesFromMatches(profileMatches);
+    if (profileTeam) {
       return [
         {
           id: 'act-team',
-          title: `Membro de ${currentTeam.name}`,
-          time: currentTeam.createdAt,
+          title: `Membro de ${profileTeam.name}`,
+          time: profileTeam.createdAt,
           type: 'team' as const,
-          href: `/time/${currentTeam.id}`,
+          href: paths.team(profileTeam.id),
         },
         ...fromMatches,
       ].slice(0, 5);
     }
     return fromMatches;
-  }, [recentMatches, currentTeam]);
+  }, [profileMatches, profileTeam]);
 
   const sparkline = useMemo(() => {
     let score = 50;
     const points = [score];
-    [...recentMatches].reverse().forEach((m) => {
+    [...profileMatches].reverse().forEach((m) => {
       score += m.result === 'VITÓRIA' ? 8 : -6;
       points.push(Math.max(10, Math.min(100, score)));
     });
     return points;
-  }, [recentMatches]);
+  }, [profileMatches]);
 
-  if (!currentUser) {
+  useEffect(() => {
+    setTab('overview');
+  }, [userId]);
+
+  // /perfil sem ID → redireciona para o próprio perfil por ID
+  if (!userId) {
+    if (currentUser) return <Navigate to={paths.player(currentUser.id)} replace />;
     return (
       <div className="py-20 max-w-md mx-auto px-4">
         <EmptyState
@@ -78,10 +102,24 @@ export const Profile: React.FC = () => {
     );
   }
 
+  if (!profileUser) {
+    return (
+      <div className="py-20 max-w-md mx-auto px-4">
+        <EmptyState
+          icon={<Users className="w-8 h-8" />}
+          title="JOGADOR NÃO ENCONTRADO"
+          description={`Não existe um jogador com o ID "${userId}".`}
+          actionText="VOLTAR AO DASHBOARD"
+          onAction={() => (window.location.href = '/dashboard')}
+        />
+      </div>
+    );
+  }
+
   const teamRole =
-    currentTeam?.captainId === currentUser.id
+    profileTeam?.captainId === profileUser.id
       ? 'CAPITÃO'
-      : currentUser.role === 'captain'
+      : profileUser.role === 'captain'
         ? 'CAPITÃO'
         : 'PLAYER';
 
@@ -131,38 +169,57 @@ export const Profile: React.FC = () => {
           </div>
         )}
 
+        <p className="text-[10px] font-mono uppercase tracking-widest text-[#5e6878]">
+          ID do jogador:{' '}
+          <span className="text-[#8b98aa]">{profileUser.id}</span>
+          {profileTeam && (
+            <>
+              {' · '}
+              Time:{' '}
+              <Link to={paths.team(profileTeam.id)} className="text-[#E31B23] hover:underline">
+                {profileTeam.id}
+              </Link>
+            </>
+          )}
+        </p>
+
         <ProfileHero
-          user={currentUser}
-          team={currentTeam}
+          user={profileUser}
+          team={profileTeam}
           teamRole={teamRole}
-          onBannerChange={(dataUrl) => {
-            updateUserProfile({ banner: dataUrl });
-            showFeedback('Banner atualizado');
-          }}
-          onAvatarChange={(dataUrl) => {
-            updateUserProfile({ avatar: dataUrl });
-            showFeedback('Foto atualizada');
-          }}
+          isEditable={isOwnProfile}
+          onBannerChange={
+            isOwnProfile
+              ? (dataUrl) => {
+                  updateUserProfile({ banner: dataUrl });
+                  showFeedback('Banner atualizado');
+                }
+              : undefined
+          }
+          onAvatarChange={
+            isOwnProfile
+              ? (dataUrl) => {
+                  updateUserProfile({ avatar: dataUrl });
+                  showFeedback('Foto atualizada');
+                }
+              : undefined
+          }
         />
 
         <ProfileNavigation active={tab} onChange={setTab} />
 
-        {/* OVERVIEW — 3 column grid like reference */}
         {tab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_260px] gap-4 lg:gap-5 items-start">
-            {/* Left */}
             <div className="lg:sticky lg:top-24">
-              <SocialLinksCard socialLinks={currentUser.socialLinks} />
+              <SocialLinksCard socialLinks={profileUser.socialLinks} />
             </div>
 
-            {/* Center */}
             <div className="space-y-4 min-w-0">
               <AchievementsSection items={achievements} />
               <TitlesByFormat />
-              <PlayerStats stats={currentUser.stats} sparkline={sparkline} />
+              <PlayerStats stats={profileUser.stats} sparkline={sparkline} />
             </div>
 
-            {/* Right */}
             <div className="space-y-4 lg:sticky lg:top-24">
               <RecentActivities items={activities} />
               <UpcomingTournaments tournaments={tournaments} />
@@ -172,14 +229,14 @@ export const Profile: React.FC = () => {
 
         {tab === 'matches' && (
           <div className="space-y-4">
-            <PlayerStats stats={currentUser.stats} sparkline={sparkline} />
-            <RecentMatchesTable matches={recentMatches} />
+            <PlayerStats stats={profileUser.stats} sparkline={sparkline} />
+            <RecentMatchesTable matches={profileMatches} />
           </div>
         )}
 
         {tab === 'stats' && (
           <div className="max-w-4xl">
-            <PlayerStats stats={currentUser.stats} sparkline={sparkline} />
+            <PlayerStats stats={profileUser.stats} sparkline={sparkline} />
           </div>
         )}
 
