@@ -21,6 +21,7 @@ export const getTournamentMatches = (tournament: Tournament): TournamentMatch[] 
     status: match.status,
     date: match.date,
     format: match.round === 'FINAL' ? 'MD5' : 'MD3',
+    playedMaps: match.playedMaps,
   }));
   return [...groupMatches, ...bracketMatches];
 };

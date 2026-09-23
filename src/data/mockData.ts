@@ -566,6 +566,29 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
         team2: { id: 'team-dw', name: 'DARK WOLVES', tag: 'DW', logo: '🐺', score: 0, isWinner: false },
         status: 'COMPLETED',
         date: '20 SET - 19:00',
+        playedMaps: [
+          {
+            map: 'Crossport',
+            order: 1,
+            status: 'PICKED',
+            team1Score: 13,
+            team2Score: 11,
+          },
+          {
+            map: 'DragonRoad',
+            order: 2,
+            status: 'PICKED',
+            team1Score: 13,
+            team2Score: 8,
+          },
+          {
+            map: 'CityCat',
+            order: 3,
+            status: 'NOT_PLAYED',
+            team1Score: null,
+            team2Score: null,
+          },
+        ],
       },
       {
         id: 'b-q2',

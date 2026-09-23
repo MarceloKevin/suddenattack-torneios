@@ -110,6 +110,15 @@ export interface TournamentTeamRef {
   seed?: number;
 }
 
+export interface PlayedMapResult {
+  map: string;
+  order: number;
+  status: 'PICKED' | 'VETO' | 'NOT_PLAYED';
+  team1Score: number | null;
+  team2Score: number | null;
+  image?: string;
+}
+
 export interface MatchBracketGame {
   id: string;
   round: 'OITAVAS' | 'QUARTAS' | 'SEMIFINAL' | 'FINAL';
@@ -133,6 +142,7 @@ export interface MatchBracketGame {
   status: 'SCHEDULED' | 'LIVE' | 'COMPLETED';
   date?: string;
   streamUrl?: string;
+  playedMaps?: PlayedMapResult[];
 }
 
 export interface MapVetoEntry {
@@ -166,6 +176,7 @@ export interface TournamentMatch {
   format?: string;
   server?: string;
   mapVeto?: MapVetoEntry[];
+  playedMaps?: PlayedMapResult[];
 }
 
 export interface GroupStanding {

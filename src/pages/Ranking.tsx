@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Team } from '../types';
-import rankingBg from '../assets/team-lineup-bg.jpg';
+import rankingBg from '../assets/ranking-bg.png';
 import { RankingPodium } from '../components/ranking/RankingPodium';
 
 const isImageSrc = (value?: string) =>
@@ -80,29 +80,45 @@ export const Ranking: React.FC = () => {
   const filters: { key: FilterKey; label: string }[] = [
     { key: 'todos', label: 'Todos' },
     { key: 'ascendendo', label: 'Ascendendo' },
-    { key: 'titulos', label: 'TÃ­tulos' },
+    { key: 'titulos', label: 'Títulos' },
     { key: 'pontos', label: 'Pontos' },
   ];
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)]">
-      {/* Full-page cinematic background */}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-no-repeat"
-        style={{
-          backgroundImage: `url(${rankingBg})`,
-          backgroundPosition: 'center top',
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(3,15,24,0.35) 0%, rgba(3,15,24,0.55) 50%, rgba(3,15,24,0.82) 100%)',
-        }}
-        aria-hidden
-      />
+    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Thematic championship background */}
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+          style={{ backgroundImage: `url(${rankingBg})` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 55% at 50% 18%, rgba(227,27,35,0.14) 0%, transparent 55%), radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,180,220,0.12) 0%, transparent 50%), linear-gradient(180deg, rgba(8,9,13,0.25) 0%, rgba(8,9,13,0.45) 42%, rgba(8,9,13,0.88) 100%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.18]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(0,180,220,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(0,180,220,0.35) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+            maskImage:
+              'radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 75%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 75%)',
+          }}
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-px"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent, rgba(255,23,79,0.55), transparent)',
+          }}
+        />
+      </div>
 
       <div className="relative z-10 max-w-[1200px] mx-auto px-[34px] py-8 sm:py-10 space-y-7 text-left">
         {/* Header */}
@@ -118,14 +134,14 @@ export const Ranking: React.FC = () => {
               Ranking
             </h1>
             <p className="mt-2.5 text-[13px] sm:text-[14px] text-[#9BB4C5] max-w-xl">
-              ClassificaÃ§Ã£o oficial dos times ordenada pela quantidade de pontos.
+              Classificação oficial dos times ordenada pela quantidade de pontos.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-wide text-[#8EA9BB]">
               <span className="inline-flex items-center gap-1.5 text-[#00B4DC]">
                 <Trophy className="w-3.5 h-3.5" aria-hidden />
                 Ranking oficial
               </span>
-              <span className="text-[#4A6070]">Â·</span>
+              <span className="text-[#4A6070]">·</span>
               <span>Temporada 2026</span>
             </div>
           </div>
@@ -149,7 +165,7 @@ export const Ranking: React.FC = () => {
           <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#FF174F]">
-                ClassificaÃ§Ã£o geral
+                Classificação geral
               </span>
               <h2 className="mt-1 font-display text-[22px] sm:text-[26px] font-black uppercase tracking-wide text-white leading-none">
                 Todos os clubes
@@ -211,7 +227,7 @@ export const Ranking: React.FC = () => {
                     <th className="py-3.5 px-5 w-16">Pos</th>
                     <th className="py-3.5 px-4">Clube</th>
                     <th className="py-3.5 px-4 text-center">Pontos</th>
-                    <th className="py-3.5 px-4 text-center">TÃ­tulos</th>
+                    <th className="py-3.5 px-4 text-center">Títulos</th>
                     <th className="py-3.5 px-4 text-center">Partidas</th>
                     <th className="py-3.5 px-4 text-center">V / D</th>
                     <th className="py-3.5 px-5 text-right">Win rate</th>
@@ -324,7 +340,7 @@ export const Ranking: React.FC = () => {
                   disabled={currentPage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="w-8 h-8 rounded-lg border border-white/15 bg-[rgba(3,15,24,0.9)] text-[#9BB4C5] flex items-center justify-center disabled:opacity-40"
-                  aria-label="PÃ¡gina anterior"
+                  aria-label="Página anterior"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -347,7 +363,7 @@ export const Ranking: React.FC = () => {
                   disabled={currentPage >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   className="w-8 h-8 rounded-lg border border-white/15 bg-[rgba(3,15,24,0.9)] text-[#9BB4C5] flex items-center justify-center disabled:opacity-40"
-                  aria-label="PrÃ³xima pÃ¡gina"
+                  aria-label="Próxima página"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

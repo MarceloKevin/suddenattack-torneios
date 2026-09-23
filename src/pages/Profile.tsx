@@ -19,6 +19,7 @@ import {
 import { UpcomingTournaments } from '../components/profile/UpcomingTournaments';
 import { RecentMatchesTable } from '../components/profile/RecentMatchesTable';
 import { ProfileTab } from '../components/profile/shared';
+import rankingBg from '../assets/ranking-bg.png';
 
 export const Profile: React.FC = () => {
   const {
@@ -90,8 +91,37 @@ export const Profile: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full bg-[#05070A] text-left">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6 pb-16">
+    <div className="relative isolate min-h-full overflow-hidden text-left">
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 opacity-40"
+          style={{
+            backgroundImage: `url(${rankingBg})`,
+            filter: 'saturate(0.55) brightness(0.5)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255,22,61,0.10), transparent 55%), radial-gradient(ellipse 50% 40% at 100% 80%, rgba(20,40,70,0.18), transparent 55%), linear-gradient(180deg, rgba(7,9,13,0.45) 0%, rgba(7,9,13,0.78) 50%, #07090D 100%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              'linear-gradient(135deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+            maskImage:
+              'radial-gradient(ellipse 75% 60% at 50% 25%, black 15%, transparent 70%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 75% 60% at 50% 25%, black 15%, transparent 70%)',
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6 pb-16">
         {feedback && (
           <div
             role="status"
