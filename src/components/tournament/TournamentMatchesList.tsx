@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TournamentMatch } from '../../types';
-import { Card } from '../ui/Card';
 import { matchStatusLabel, phaseLabel } from '../../utils/matchHelpers';
+import { resolveTeamLogo } from '../../utils/teamLogo';
+import { isImageSrc } from '../profile/shared';
 import { Swords } from 'lucide-react';
+import './TournamentDetails.css';
 
 interface TournamentMatchesListProps {
   matches: TournamentMatch[];
@@ -20,6 +22,21 @@ const PHASE_ORDER = [
   'SEMIFINAL',
   'FINAL',
 ];
+
+const statusModifier = (status: TournamentMatch['status']) => {
+  if (status === 'LIVE') return 'sa-td-match__status--live';
+  if (status === 'SCHEDULED') return 'sa-td-match__status--scheduled';
+  return 'sa-td-match__status--done';
+};
+
+const SideLogo: React.FC<{ id: string; logo?: string }> = ({ id, logo }) => {
+  const src = resolveTeamLogo(id, logo);
+  return (
+    <span className="sa-td-match__side-logo">
+      {isImageSrc(src) ? <img src={src} alt="" /> : src}
+    </span>
+  );
+};
 
 export const TournamentMatchesList: React.FC<TournamentMatchesListProps> = ({
   matches,
@@ -53,29 +70,23 @@ export const TournamentMatchesList: React.FC<TournamentMatchesListProps> = ({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+    <div className="sa-td-matches-wrap">
+      <div className="sa-td-filters">
         <button
+          type="button"
           onClick={() => setFilter('TODAS')}
-          className={`px-3 py-1.5 text-[10px] font-mono uppercase border transition-colors ${
-            filter === 'TODAS'
-              ? 'border-[#E31B23] text-white bg-[#E31B23]/10'
-              : 'border-[#272B35] text-[#9298A5] hover:text-white'
-          }`}
+          className={`sa-td-filter ${filter === 'TODAS' ? 'is-active' : ''}`}
         >
-          Todas ({matches.length})
+          TODAS ({matches.length})
         </button>
         {phases.map((phase) => {
           const count = matches.filter((m) => m.phase === phase).length;
           return (
             <button
               key={phase}
+              type="button"
               onClick={() => setFilter(phase)}
-              className={`px-3 py-1.5 text-[10px] font-mono uppercase border transition-colors ${
-                filter === phase
-                  ? 'border-[#E31B23] text-white bg-[#E31B23]/10'
-                  : 'border-[#272B35] text-[#9298A5] hover:text-white'
-              }`}
+              className={`sa-td-filter ${filter === phase ? 'is-active' : ''}`}
             >
               {phaseLabel(phase)} ({count})
             </button>
@@ -83,65 +94,48 @@ export const TournamentMatchesList: React.FC<TournamentMatchesListProps> = ({
         })}
       </div>
 
-      <div className="space-y-3">
+      <div className="sa-td-matches">
         {sorted.map((match) => {
           const status = matchStatusLabel(match.status);
           return (
             <Link
               key={match.id}
               to={`/torneios/${tournamentId}/partidas/${match.id}`}
-              className="block"
+              className="sa-td-match"
             >
-              <Card
-                variant="primary"
-                className="p-4 border-[#272B35] hover:border-[#E31B23]/60 transition-colors cursor-pointer"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase">
-                    <span className="px-2 py-0.5 border border-[#272B35] text-[#E31B23] font-bold">
-                      {phaseLabel(match.phase)}
-                    </span>
-                    <span className="text-[#9298A5]">JOGO {match.matchNumber}</span>
-                    {match.map && <span className="text-zinc-500">• {match.map}</span>}
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] font-mono uppercase">
-                    <span className="text-[#9298A5]">{match.date || '—'}</span>
-                    <span className={status.className}>{status.text}</span>
-                    <span className="text-[#E31B23] hidden sm:inline">VER DETALHES →</span>
-                  </div>
+              <article className="sa-td-match__card">
+                <div className="sa-td-match__phase">
+                  <span className="sa-td-match__phase-badge">{phaseLabel(match.phase)}</span>
+                  <span className="sa-td-match__game">JOGO {match.matchNumber}</span>
                 </div>
 
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div className="sa-td-match__scoreboard">
                   <div
-                    className={`flex items-center gap-2.5 min-w-0 justify-end ${
-                      match.team1.isWinner ? 'text-white' : 'text-zinc-400'
+                    className={`sa-td-match__side sa-td-match__side--left ${
+                      match.team1.isWinner ? 'is-winner' : ''
                     }`}
                   >
-                    <div className="min-w-0 text-right">
-                      <span
-                        className={`text-sm font-display uppercase block truncate ${
-                          match.team1.isWinner ? 'font-bold' : ''
-                        }`}
-                      >
+                    <div className="sa-td-match__side-text min-w-0">
+                      <span className="sa-td-match__side-name font-display">
                         {match.team1.name}
                       </span>
-                      <span className="text-[10px] font-mono text-[#9298A5]">[{match.team1.tag}]</span>
+                      <span className="sa-td-match__side-tag">[{match.team1.tag}]</span>
                     </div>
-                    <span className="text-xl shrink-0">{match.team1.logo}</span>
+                    <SideLogo id={match.team1.id} logo={match.team1.logo} />
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="sa-td-match__scores">
                     <span
-                      className={`min-w-[28px] text-center text-lg font-display font-bold ${
-                        match.team1.isWinner ? 'text-white' : 'text-zinc-500'
+                      className={`sa-td-match__score font-display ${
+                        match.team1.isWinner ? 'is-winner' : ''
                       }`}
                     >
                       {match.team1.score}
                     </span>
-                    <Swords className="w-3.5 h-3.5 text-[#E31B23]" />
+                    <Swords aria-hidden />
                     <span
-                      className={`min-w-[28px] text-center text-lg font-display font-bold ${
-                        match.team2.isWinner ? 'text-white' : 'text-zinc-500'
+                      className={`sa-td-match__score font-display ${
+                        match.team2.isWinner ? 'is-winner' : ''
                       }`}
                     >
                       {match.team2.score}
@@ -149,24 +143,26 @@ export const TournamentMatchesList: React.FC<TournamentMatchesListProps> = ({
                   </div>
 
                   <div
-                    className={`flex items-center gap-2.5 min-w-0 ${
-                      match.team2.isWinner ? 'text-white' : 'text-zinc-400'
-                    }`}
+                    className={`sa-td-match__side ${match.team2.isWinner ? 'is-winner' : ''}`}
                   >
-                    <span className="text-xl shrink-0">{match.team2.logo}</span>
-                    <div className="min-w-0">
-                      <span
-                        className={`text-sm font-display uppercase block truncate ${
-                          match.team2.isWinner ? 'font-bold' : ''
-                        }`}
-                      >
+                    <SideLogo id={match.team2.id} logo={match.team2.logo} />
+                    <div className="sa-td-match__side-text min-w-0">
+                      <span className="sa-td-match__side-name font-display">
                         {match.team2.name}
                       </span>
-                      <span className="text-[10px] font-mono text-[#9298A5]">[{match.team2.tag}]</span>
+                      <span className="sa-td-match__side-tag">[{match.team2.tag}]</span>
                     </div>
                   </div>
                 </div>
-              </Card>
+
+                <div className="sa-td-match__aside">
+                  <span className="sa-td-match__date">{match.date || '—'}</span>
+                  <span className={`sa-td-match__status ${statusModifier(match.status)}`}>
+                    {status.text}
+                  </span>
+                  <span className="sa-td-match__cta">VER DETALHES →</span>
+                </div>
+              </article>
             </Link>
           );
         })}

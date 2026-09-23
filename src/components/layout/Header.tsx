@@ -10,7 +10,6 @@ import {
   User,
   Settings,
   LogOut,
-  PlusCircle,
   Trophy,
   Users,
   LayoutDashboard,
@@ -143,11 +142,11 @@ export const Header: React.FC = () => {
               )}
             </div>
 
-            {/* Admin Create Tournament button if Admin */}
+            {/* Admin panel button if Admin */}
             {currentUser?.isAdmin && (
-              <Link to="/admin/torneios/novo">
-                <Button variant="outline" size="sm" leftIcon={<PlusCircle className="w-3.5 h-3.5 text-[#E31B23]" />}>
-                  + CRIAR TORNEIO
+              <Link to="/dashboard_admin">
+                <Button variant="outline" size="sm" leftIcon={<Shield className="w-3.5 h-3.5 text-[#E31B23]" />}>
+                  PAINEL ADMIN
                 </Button>
               </Link>
             )}
@@ -209,7 +208,7 @@ export const Header: React.FC = () => {
                       </Link>
                       {currentUser.isAdmin && (
                         <Link
-                          to="/admin/torneios/novo"
+                          to="/dashboard_admin"
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-[#F5F5F5] hover:bg-[#181B23] hover:text-[#E31B23] transition-colors"
                         >
@@ -301,12 +300,12 @@ export const Header: React.FC = () => {
 
                 {currentUser.isAdmin && (
                   <Link
-                    to="/admin/torneios/novo"
+                    to="/dashboard_admin"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold uppercase tracking-wider text-[#E31B23]"
                   >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>+ Criar Torneio (Admin)</span>
+                    <Shield className="w-4 h-4" />
+                    <span>Painel do Administrador</span>
                   </Link>
                 )}
               </div>

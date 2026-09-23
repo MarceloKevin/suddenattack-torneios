@@ -1,115 +1,140 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Tournament } from '../../types';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { TournamentStatus } from './TournamentStatus';
-import { Calendar, Users, Trophy, ChevronRight } from 'lucide-react';
+import { Tournament, getConfirmedTeams } from '../../types';
+import { Calendar, Users, Trophy, ArrowRight } from 'lucide-react';
 
 interface TournamentCardProps {
   tournament: Tournament;
 }
 
+const isImageSrc = (value?: string) =>
+  !!value && (value.startsWith('http') || value.startsWith('data:') || value.startsWith('/'));
+
+const statusClass = (status: Tournament['status']) => {
+  switch (status) {
+    case 'active':
+      return 'sa-tour-status--active';
+    case 'open':
+      return 'sa-tour-status--open';
+    case 'finished':
+      return 'sa-tour-status--finished';
+    case 'draft':
+      return 'sa-tour-status--draft';
+    default:
+      return 'sa-tour-status--finished';
+  }
+};
+
+const statusLabel = (status: Tournament['status']) => {
+  switch (status) {
+    case 'active':
+      return 'Ativo';
+    case 'open':
+      return 'Inscrições abertas';
+    case 'finished':
+      return 'Finalizado';
+    case 'draft':
+      return 'Rascunho';
+    default:
+      return status;
+  }
+};
+
+const formatPeriod = (start: string, end: string) => {
+  const s = start.split(' ').slice(0, 2).join(' ');
+  const e = end.split(' ').slice(0, 2).join(' ');
+  return `${s} — ${e}`;
+};
+
+const DEFAULT_CARD_BG =
+  'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=500&fit=crop&q=70';
+
 export const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   const isFinished = tournament.status === 'finished';
-  const isFull = tournament.registeredTeams.length >= tournament.maxTeams;
+  const confirmedTeams = getConfirmedTeams(tournament.registeredTeams);
+  const isFull = confirmedTeams.length >= tournament.maxTeams;
+  const logo =
+    tournament.championTeam?.logo ||
+    confirmedTeams[0]?.logo ||
+    '🏆';
+  const cardBg = tournament.banner || DEFAULT_CARD_BG;
 
   return (
-    <Card
-      variant="primary"
-      hasHudCorners
-      glow
-      className="p-5 flex flex-col justify-between border-[#272B35] hover:border-[#E31B23]/50 transition-all duration-300"
-    >
-      <div>
-        {/* Top bar with Status and Format */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <TournamentStatus status={tournament.status} />
-          <span className="text-[11px] font-mono uppercase bg-[#181B23] border border-[#272B35] px-2 py-0.5 text-zinc-400">
-            {tournament.format}
+    <article className="sa-tour-card">
+      <div className="sa-tour-card__bg" aria-hidden>
+        <img src={cardBg} alt="" />
+        <span className="sa-tour-card__bg-shade" />
+      </div>
+
+      <div className="sa-tour-card__content">
+      <div className="sa-tour-card__top">
+        <span className={`sa-tour-status ${statusClass(tournament.status)}`}>
+          <span className="sa-tour-status__dot" aria-hidden />
+          {statusLabel(tournament.status)}
+        </span>
+        <span className="sa-tour-format">{tournament.format}</span>
+      </div>
+
+      <div className="sa-tour-card__brand">
+        <div className="sa-tour-logo" aria-hidden>
+          <span className="sa-tour-logo__glow" />
+          <div className="sa-tour-logo__ring">
+            {isImageSrc(logo) ? <img src={logo} alt="" /> : <span>{logo}</span>}
+          </div>
+        </div>
+        <div className="min-w-0">
+          <h3 className="sa-tour-card__name font-display">{tournament.name}</h3>
+          <p className="sa-tour-card__desc">{tournament.description}</p>
+        </div>
+      </div>
+
+      {isFinished && tournament.championTeam && (
+        <div className="sa-tour-champ">
+          <div>
+            <span className="sa-tour-champ__label">Campeão</span>
+            <span className="sa-tour-champ__name">
+              {tournament.championTeam.name} [{tournament.championTeam.tag}]
+            </span>
+          </div>
+          <span className="sa-tour-champ__prize">{tournament.prizePool}</span>
+        </div>
+      )}
+
+      <div className="sa-tour-meta">
+        <div>
+          <span className="sa-tour-meta__label">
+            <Calendar aria-hidden /> Período
+          </span>
+          <span className="sa-tour-meta__value">
+            {formatPeriod(tournament.startDate, tournament.endDate)}
           </span>
         </div>
-
-        {/* Tournament Title */}
-        <h3 className="text-xl sm:text-2xl font-display uppercase tracking-wide text-white mb-2 line-clamp-1 text-left">
-          {tournament.name}
-        </h3>
-
-        <p className="text-xs text-[#9298A5] line-clamp-2 text-left mb-4">
-          {tournament.description}
-        </p>
-
-        {/* Finished Champion Banner */}
-        {isFinished && tournament.championTeam && (
-          <div className="bg-[#181B23] border-l-2 border-yellow-500 p-2.5 mb-4 text-left flex items-center justify-between">
-            <div>
-              <span className="text-[10px] uppercase font-mono text-yellow-500 font-bold block">
-                🏆 CAMPEÃO
-              </span>
-              <span className="text-sm font-bold text-white flex items-center gap-1.5 mt-0.5">
-                <span>{tournament.championTeam.logo}</span>
-                <span>{tournament.championTeam.name}</span>
-                <span className="text-xs text-zinc-500">[{tournament.championTeam.tag}]</span>
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase font-mono text-[#9298A5] block">PREMIAÇÃO</span>
-              <span className="text-xs font-bold text-emerald-400">{tournament.prizePool}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-2.5 py-3 border-y border-[#272B35]/60 mb-4 text-left">
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-mono text-[#9298A5] flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-[#E31B23]" />
-              PERÍODO
-            </span>
-            <span className="text-xs font-semibold text-white block">
-              {tournament.startDate.split(' ')[0]} {tournament.startDate.split(' ')[1]} — {tournament.endDate.split(' ')[0]} {tournament.endDate.split(' ')[1]}
-            </span>
-          </div>
-
-          <div className="space-y-0.5">
-            <span className="text-[10px] uppercase font-mono text-[#9298A5] flex items-center gap-1">
-              <Users className="w-3 h-3 text-[#E31B23]" />
-              EQUIPES
-            </span>
-            <span className="text-xs font-semibold text-white block">
-              <span className={isFull ? 'text-amber-400' : 'text-emerald-400'}>
-                {tournament.registeredTeams.length}
-              </span>
-              {' / '}
-              <span>{tournament.maxTeams} TIMES</span>
-            </span>
-          </div>
-
-          <div className="col-span-2 pt-1 flex items-center justify-between">
-            <span className="text-[10px] uppercase font-mono text-[#9298A5] flex items-center gap-1">
-              <Trophy className="w-3.5 h-3.5 text-yellow-500" />
-              PREMIAÇÃO TOTAL
-            </span>
-            <span className="text-base font-display text-emerald-400 font-bold tracking-wide">
-              {tournament.prizePool}
-            </span>
-          </div>
+        <div>
+          <span className="sa-tour-meta__label">
+            <Users aria-hidden /> Equipes
+          </span>
+          <span className={`sa-tour-meta__value ${isFull ? 'is-full' : ''}`}>
+            {confirmedTeams.length} / {tournament.maxTeams} times
+          </span>
+        </div>
+        <div className="sa-tour-meta__prize">
+          <span className="sa-tour-meta__label">
+            <Trophy aria-hidden /> Premiação total
+          </span>
+          <span className="sa-tour-meta__prize-value font-display">
+            {tournament.prizePool}
+          </span>
         </div>
       </div>
 
-      {/* Action Button */}
-      <div className="pt-1">
-        <Link to={`/torneios/${tournament.id}`}>
-          <Button
-            variant={isFinished ? 'secondary' : 'primary'}
-            fullWidth
-            size="sm"
-            rightIcon={<ChevronRight className="w-4 h-4" />}
-          >
-            {isFinished ? 'VER RESULTADOS' : 'VER TORNEIO'}
-          </Button>
-        </Link>
+      <Link
+        to={`/torneios/${tournament.id}`}
+        className={`sa-tour-cta ${isFinished ? 'sa-tour-cta--secondary' : ''}`}
+      >
+        {isFinished ? 'Ver resultados' : 'Ver torneio'}
+        <ArrowRight aria-hidden />
+      </Link>
       </div>
-    </Card>
+    </article>
   );
 };

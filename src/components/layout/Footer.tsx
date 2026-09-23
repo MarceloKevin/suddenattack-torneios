@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from './Logo';
-import { Shield, Trophy, Flame } from 'lucide-react';
+import { Trophy, Flame } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -15,17 +15,6 @@ export const Footer: React.FC = () => {
               Plataforma competitiva oficial para jogadores e equipes de Sudden Attack.
               Organização de campeonatos, rankings de clãs, estatísticas detalhadas e disputa por premiações reais.
             </p>
-            <div className="flex items-center gap-4 text-xs font-mono text-zinc-500 pt-2">
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                SERVIDORES ONLINE
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-[#E31B23]" />
-                ANTI-CHEAT ATIVO
-              </span>
-            </div>
           </div>
 
           {/* Platform Links */}

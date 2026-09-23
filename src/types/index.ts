@@ -100,6 +100,21 @@ export interface Team {
 
 export type TournamentStatus = 'draft' | 'open' | 'active' | 'finished';
 export type TournamentFormat = 'MD1' | 'MD3' | 'MD5';
+export type TournamentStructure =
+  | 'single_elim'
+  | 'double_elim'
+  | 'groups_single_elim'
+  | 'groups_double_elim';
+
+export const TOURNAMENT_STRUCTURE_LABELS: Record<TournamentStructure, string> = {
+  single_elim: 'Mata-mata — eliminação única',
+  double_elim: 'Mata-mata — dupla eliminação',
+  groups_single_elim: 'Fase de grupos + mata-mata (eliminação única)',
+  groups_double_elim: 'Fase de grupos + mata-mata (dupla eliminação)',
+};
+
+export const isDoubleElimStructure = (structure?: TournamentStructure) =>
+  structure === 'double_elim' || structure === 'groups_double_elim';
 
 export interface TournamentTeamRef {
   id: string;
@@ -108,7 +123,19 @@ export interface TournamentTeamRef {
   logo: string;
   playersCount: number;
   seed?: number;
+  /** Data/hora da inscrição no torneio (ex.: 23/09/2026 14:32) */
+  registeredAt?: string;
+  /** false = inscrito aguardando; true/undefined = confirmado no campeonato */
+  confirmed?: boolean;
 }
+
+/** Times confirmados pelo admin (ocupam vaga na chave/tabela) */
+export const getConfirmedTeams = (teams: TournamentTeamRef[]) =>
+  teams.filter((t) => t.confirmed !== false);
+
+/** Times inscritos ainda não confirmados */
+export const getPendingTeams = (teams: TournamentTeamRef[]) =>
+  teams.filter((t) => t.confirmed === false);
 
 export interface PlayedMapResult {
   map: string;
@@ -119,10 +146,28 @@ export interface PlayedMapResult {
   image?: string;
 }
 
+export type BracketRound =
+  | 'OITAVAS'
+  | 'QUARTAS'
+  | 'SEMIFINAL'
+  | 'FINAL'
+  | 'LB_R1'
+  | 'LB_R2'
+  | 'LB_R3'
+  | 'LB_R4'
+  | 'LB_R5'
+  | 'LB_R6'
+  | 'LB_FINAL'
+  | 'GRAND_FINAL';
+
+export type BracketSide = 'winners' | 'losers' | 'grand';
+
 export interface MatchBracketGame {
   id: string;
-  round: 'OITAVAS' | 'QUARTAS' | 'SEMIFINAL' | 'FINAL';
+  round: BracketRound;
   matchNumber: number;
+  /** winners = chave superior; losers = chave inferior; grand = grande final */
+  bracketSide?: BracketSide;
   team1: {
     id: string;
     name: string;
@@ -143,6 +188,8 @@ export interface MatchBracketGame {
   date?: string;
   streamUrl?: string;
   playedMaps?: PlayedMapResult[];
+  /** Partida decidida por W.O. (walkover) */
+  wo?: boolean;
 }
 
 export interface MapVetoEntry {
@@ -199,6 +246,16 @@ export interface TournamentGroup {
   standings: GroupStanding[];
 }
 
+export interface TournamentPrizeTier {
+  id: string;
+  /** single = uma colocação; range = intervalo (ex.: 4–8) */
+  type: 'single' | 'range';
+  from: number;
+  to: number;
+  /** Texto livre da premiação, ex.: "R$ 1.000 + 50k player + 300 pontos" */
+  reward: string;
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -207,12 +264,16 @@ export interface Tournament {
   banner?: string;
   status: TournamentStatus;
   format: TournamentFormat;
+  /** Estrutura do campeonato (chave / grupos) */
+  structure?: TournamentStructure;
   startDate: string;
   endDate: string;
   prizePool: string;
   firstPlacePrize: string;
   secondPlacePrize: string;
   thirdPlacePrize: string;
+  /** Tabela flexível de premiação (posições e intervalos) */
+  prizeTiers?: TournamentPrizeTier[];
   maxTeams: number;
   registeredTeams: TournamentTeamRef[];
   championTeam?: {

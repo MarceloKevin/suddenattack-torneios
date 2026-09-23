@@ -20,7 +20,8 @@ export const getTournamentMatches = (tournament: Tournament): TournamentMatch[] 
     team2: match.team2,
     status: match.status,
     date: match.date,
-    format: match.round === 'FINAL' ? 'MD5' : 'MD3',
+    format:
+      match.round === 'GRAND_FINAL' || match.round === 'FINAL' ? 'MD5' : 'MD3',
     playedMaps: match.playedMaps,
   }));
   return [...groupMatches, ...bracketMatches];
@@ -35,6 +36,22 @@ export const phaseLabel = (phase: string) => {
     case 'SEMIFINAL':
       return 'SEMIFINAL';
     case 'FINAL':
+      return 'FINAL (CHAVE SUPERIOR)';
+    case 'LB_R1':
+      return 'CHAVE INFERIOR — R1';
+    case 'LB_R2':
+      return 'CHAVE INFERIOR — R2';
+    case 'LB_R3':
+      return 'CHAVE INFERIOR — R3';
+    case 'LB_R4':
+      return 'CHAVE INFERIOR — R4';
+    case 'LB_R5':
+      return 'CHAVE INFERIOR — R5';
+    case 'LB_R6':
+      return 'CHAVE INFERIOR — R6';
+    case 'LB_FINAL':
+      return 'FINAL (CHAVE INFERIOR)';
+    case 'GRAND_FINAL':
       return 'GRANDE FINAL';
     default:
       return phase;

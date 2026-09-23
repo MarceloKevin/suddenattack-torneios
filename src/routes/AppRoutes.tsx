@@ -12,7 +12,9 @@ import { TournamentsPage } from '../pages/Tournaments';
 import { TournamentDetails } from '../pages/TournamentDetails';
 import { MatchDetails } from '../pages/MatchDetails';
 import { CreateTournament } from '../pages/CreateTournament';
+import { EditTournament } from '../pages/EditTournament';
 import { Ranking } from '../pages/Ranking';
+import { AdminDashboardPage } from '../pages/AdminDashboard';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -40,7 +42,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="/torneios/:id/partidas/:matchId" element={<MatchDetails />} />
 
         {/* Admin */}
+        <Route path="/dashboard_admin" element={<AdminDashboardPage />} />
         <Route path="/admin/torneios/novo" element={<CreateTournament />} />
+        <Route path="/admin/torneios/:id/editar" element={<EditTournament />} />
 
         {/* Redirecionamento 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />

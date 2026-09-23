@@ -1,194 +1,300 @@
 import React from 'react';
 import { MatchBracketGame } from '../../types';
-import { Card } from '../ui/Card';
 import { Trophy, Swords, CheckCircle2 } from 'lucide-react';
+import { resolveTeamLogo } from '../../utils/teamLogo';
+import { isImageSrc } from '../profile/shared';
+import { phaseLabel } from '../../utils/matchHelpers';
+import './TournamentDetails.css';
 
 interface TournamentBracketProps {
   brackets: MatchBracketGame[];
   championName?: string;
   championLogo?: string;
   championTag?: string;
+  championId?: string;
+  /** Quando informado, as partidas ficam clicáveis */
+  onMatchClick?: (match: MatchBracketGame) => void;
+  /** Esconde o card de campeão se ainda não houver */
+  showChampion?: boolean;
 }
+
+const TeamMark: React.FC<{ id: string; logo?: string; name: string }> = ({ id, logo, name }) => {
+  const src = resolveTeamLogo(id, logo);
+  return (
+    <div className="sa-td-brow__team">
+      <span className="sa-td-brow__logo">
+        {isImageSrc(src) ? <img src={src} alt="" /> : <span>{src}</span>}
+      </span>
+      <span>{name}</span>
+    </div>
+  );
+};
 
 const MatchCard: React.FC<{
   match: MatchBracketGame;
   format?: string;
   highlight?: boolean;
-}> = ({ match, format = 'MD3', highlight = false }) => (
-  <Card
-    variant={highlight ? 'primary' : 'secondary'}
-    hasHudCorners={highlight}
-    className={`p-3 border-[#272B35] relative hover:border-[#E31B23]/40 transition-colors ${
-      highlight
-        ? 'border-yellow-500/50 bg-gradient-to-b from-[#181B23] to-[#13161D] shadow-lg shadow-yellow-950/20'
-        : ''
-    }`}
-  >
-    <div
-      className={`text-[10px] font-mono mb-2 flex justify-between ${
-        highlight ? 'text-yellow-500 font-bold' : 'text-[#9298A5]'
-      }`}
-    >
-      <span>
-        {format} • JOGO {match.matchNumber}
-      </span>
-      <span>{match.date || 'ENCERRADO'}</span>
-    </div>
+  onClick?: () => void;
+}> = ({ match, format = 'MD3', highlight = false, onClick }) => {
+  const interactive = Boolean(onClick);
+  const className = [
+    'sa-td-bmatch',
+    highlight ? 'sa-td-bmatch--final' : '',
+    interactive ? 'sa-td-bmatch--clickable' : '',
+    match.wo ? 'sa-td-bmatch--wo' : '',
+    match.bracketSide === 'losers' ? 'sa-td-bmatch--losers' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-    <div className="space-y-1.5">
-      <div
-        className={`flex items-center justify-between p-1.5 text-xs ${
-          match.team1.isWinner
-            ? highlight
-              ? 'bg-yellow-500/20 font-bold text-white border-l-4 border-yellow-500'
-              : 'bg-[#E31B23]/10 font-bold text-white border-l-2 border-[#E31B23]'
-            : 'text-zinc-400'
-        }`}
-      >
-        <span className="flex items-center gap-1.5 truncate">
-          <span>{match.team1.logo}</span>
-          <span className="truncate">{match.team1.name}</span>
+  const content = (
+    <>
+      <div className="sa-td-bmatch__meta">
+        <span>
+          {format} • JOGO {match.matchNumber}
+          {match.wo ? ' • W.O.' : ''}
         </span>
-        <span
-          className={`font-mono text-sm ml-2 px-1.5 ${
-            highlight ? 'bg-[#08090D] text-yellow-400 font-bold' : 'bg-[#0E1016]'
-          }`}
-        >
-          {match.team1.score}
+        <span>
+          {match.date && !/^a definir$/i.test(match.date.trim())
+            ? match.date
+            : match.status === 'COMPLETED'
+              ? 'ENCERRADO'
+              : '—'}
         </span>
       </div>
 
-      <div
-        className={`flex items-center justify-between p-1.5 text-xs ${
-          match.team2.isWinner
-            ? highlight
-              ? 'bg-yellow-500/20 font-bold text-white border-l-4 border-yellow-500'
-              : 'bg-[#E31B23]/10 font-bold text-white border-l-2 border-[#E31B23]'
-            : 'text-zinc-400'
-        }`}
-      >
-        <span className="flex items-center gap-1.5 truncate">
-          <span>{match.team2.logo}</span>
-          <span className="truncate">{match.team2.name}</span>
-        </span>
-        <span className="font-mono text-sm ml-2 px-1.5 bg-[#0E1016]">{match.team2.score}</span>
+      <div className="sa-td-bmatch__rows">
+        <div className={`sa-td-brow ${match.team1.isWinner ? 'is-winner' : ''}`}>
+          <TeamMark id={match.team1.id} logo={match.team1.logo} name={match.team1.name} />
+          <span className="sa-td-brow__score">{match.team1.score}</span>
+        </div>
+
+        <div className={`sa-td-brow ${match.team2.isWinner ? 'is-winner' : ''}`}>
+          <TeamMark id={match.team2.id} logo={match.team2.logo} name={match.team2.name} />
+          <span className="sa-td-brow__score">{match.team2.score}</span>
+        </div>
       </div>
-    </div>
-  </Card>
-);
+    </>
+  );
 
-export const TournamentBracket: React.FC<TournamentBracketProps> = ({
-  brackets,
-  championName = 'SKILL KINGS',
-  championLogo = '👑',
-  championTag = 'SK',
-}) => {
-  const oitavas = brackets.filter((b) => b.round === 'OITAVAS');
-  const quartas = brackets.filter((b) => b.round === 'QUARTAS');
-  const semifinal = brackets.filter((b) => b.round === 'SEMIFINAL');
-  const finalMatch = brackets.find((b) => b.round === 'FINAL');
-  const hasOitavas = oitavas.length > 0;
-  const columns = hasOitavas ? 5 : 4;
+  if (interactive) {
+    return (
+      <button type="button" className={className} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
 
+  return <div className={className}>{content}</div>;
+};
+
+const RoundColumn: React.FC<{
+  label: string;
+  matches: MatchBracketGame[];
+  format?: string;
+  highlight?: boolean;
+  gold?: boolean;
+  stackClass?: string;
+  onMatchClick?: (match: MatchBracketGame) => void;
+}> = ({ label, matches, format, highlight, gold, stackClass, onMatchClick }) => {
+  if (matches.length === 0) return null;
   return (
-    <div className="w-full overflow-x-auto pb-6">
-      <div
-        className={`grid gap-5 items-start ${
-          hasOitavas ? 'min-w-[1100px] grid-cols-5' : 'min-w-[840px] grid-cols-4'
-        }`}
+    <div>
+      <span
+        className={`sa-td-bracket-col__label${gold ? ' sa-td-bracket-col__label--gold' : ''}`}
       >
-        {hasOitavas && (
-          <div className="space-y-4">
-            <div className="text-center pb-2 border-b border-[#272B35]">
-              <span className="text-xs font-mono uppercase tracking-widest text-[#E31B23] font-bold">
-                01 // OITAVAS DE FINAL
-              </span>
-            </div>
-            <div className="space-y-3">
-              {oitavas.map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <div className="text-center pb-2 border-b border-[#272B35]">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#E31B23] font-bold">
-              {hasOitavas ? '02' : '01'} // QUARTAS DE FINAL
-            </span>
-          </div>
-          <div className={`space-y-4 ${hasOitavas ? 'pt-6' : ''}`}>
-            {quartas.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="text-center pb-2 border-b border-[#272B35]">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#E31B23] font-bold">
-              {hasOitavas ? '03' : '02'} // SEMIFINAIS
-            </span>
-          </div>
-          <div className={`space-y-12 ${hasOitavas ? 'pt-16' : ''}`}>
-            {semifinal.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="text-center pb-2 border-b border-[#272B35]">
-            <span className="text-xs font-mono uppercase tracking-widest text-yellow-400 font-bold flex items-center justify-center gap-1">
-              <Swords className="w-3.5 h-3.5" /> {hasOitavas ? '04' : '03'} // GRANDE FINAL
-            </span>
-          </div>
-          <div className={hasOitavas ? 'pt-28' : ''}>
-            {finalMatch ? (
-              <MatchCard match={finalMatch} format="MD5" highlight />
-            ) : (
-              <Card variant="secondary" className="p-4 text-center text-xs text-[#9298A5]">
-                Aguardando finalistas
-              </Card>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="text-center pb-2 border-b border-[#272B35]">
-            <span className="text-xs font-mono uppercase tracking-widest text-yellow-400 font-bold">
-              {String(columns).padStart(2, '0')} // TROFÉU & GLÓRIA
-            </span>
-          </div>
-          <div className={hasOitavas ? 'pt-28' : ''}>
-            <div className="p-5 bg-gradient-to-b from-[#181B23] to-[#0E1016] border-2 border-yellow-500/70 text-center relative hud-corner shadow-2xl shadow-yellow-900/10">
-              <div className="w-14 h-14 mx-auto mb-2 rounded-none bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-center text-yellow-400">
-                <Trophy className="w-8 h-8 animate-bounce" />
-              </div>
-
-              <div className="text-[10px] font-mono tracking-widest uppercase text-yellow-500 font-bold mb-1">
-                CAMPEÃO DO TORNEIO
-              </div>
-
-              <div className="text-3xl my-1">{championLogo}</div>
-
-              <h4 className="text-2xl font-display text-white uppercase tracking-wider">
-                {championName}
-              </h4>
-
-              <span className="inline-block text-xs font-mono bg-yellow-500/20 text-yellow-300 px-2.5 py-0.5 mt-1 border border-yellow-500/30 font-bold">
-                TAG: [{championTag}]
-              </span>
-
-              <div className="mt-4 pt-3 border-t border-[#272B35] flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-mono">
-                <CheckCircle2 className="w-4 h-4" />
-                TÍTULO CONQUISTADO
-              </div>
-            </div>
-          </div>
-        </div>
+        {gold && <Swords className="sa-td-bracket-col__icon" aria-hidden />}
+        {label}
+      </span>
+      <div className={`sa-td-bracket-col__stack ${stackClass || ''}`.trim()}>
+        {matches.map((match) => (
+          <MatchCard
+            key={match.id}
+            match={match}
+            format={format}
+            highlight={highlight}
+            onClick={onMatchClick ? () => onMatchClick(match) : undefined}
+          />
+        ))}
       </div>
     </div>
   );
 };
+
+export const TournamentBracket: React.FC<TournamentBracketProps> = ({
+  brackets,
+  championName = 'A DEFINIR',
+  championLogo = '🏆',
+  championTag = '—',
+  championId = 'tbd',
+  onMatchClick,
+  showChampion = true,
+}) => {
+  const isDouble = brackets.some(
+    (b) => b.bracketSide === 'losers' || b.round === 'GRAND_FINAL'
+  );
+
+  const winners = brackets.filter((b) => (b.bracketSide ?? 'winners') === 'winners');
+  const losers = brackets.filter((b) => b.bracketSide === 'losers');
+  const grandFinal = brackets.find((b) => b.round === 'GRAND_FINAL');
+
+  const oitavas = winners.filter((b) => b.round === 'OITAVAS');
+  const quartas = winners.filter((b) => b.round === 'QUARTAS');
+  const semifinal = winners.filter((b) => b.round === 'SEMIFINAL');
+  const finalMatch = winners.find((b) => b.round === 'FINAL');
+  const hasOitavas = oitavas.length > 0;
+  const champLogo = resolveTeamLogo(championId, championLogo);
+  const hasChampion = Boolean(championId && championId !== 'tbd' && championName !== 'A DEFINIR');
+
+  const losersByRound = LOSERS_ROUND_ORDER.map((round) => ({
+    round,
+    matches: losers
+      .filter((b) => b.round === round)
+      .sort((a, b) => a.matchNumber - b.matchNumber),
+  })).filter((g) => g.matches.length > 0);
+
+  return (
+    <div className="sa-td-bracket-wrap">
+      {isDouble && (
+        <div className="sa-td-bracket-section-title">01 // CHAVE SUPERIOR (WINNERS)</div>
+      )}
+
+      <div
+        className={`sa-td-bracket ${hasOitavas ? 'has-oitavas' : ''}${isDouble ? ' sa-td-bracket--winners-de' : ''}`}
+      >
+        <RoundColumn
+          label={`${hasOitavas ? '01' : '01'} // OITAVAS DE FINAL`}
+          matches={oitavas}
+          onMatchClick={onMatchClick}
+        />
+        <RoundColumn
+          label={`${hasOitavas ? '02' : '01'} // QUARTAS DE FINAL`}
+          matches={quartas}
+          stackClass={hasOitavas ? 'sa-td-bracket-col__stack--semi' : ''}
+          onMatchClick={onMatchClick}
+        />
+        <RoundColumn
+          label={`${hasOitavas ? '03' : '02'} // SEMIFINAIS`}
+          matches={semifinal}
+          stackClass="sa-td-bracket-col__stack--semi"
+          onMatchClick={onMatchClick}
+        />
+        <RoundColumn
+          label={`${hasOitavas ? '04' : '03'} // ${isDouble ? 'FINAL SUPERIOR' : 'GRANDE FINAL'}`}
+          matches={finalMatch ? [finalMatch] : []}
+          format="MD5"
+          highlight
+          gold
+          stackClass="sa-td-bracket-col__stack--final"
+          onMatchClick={onMatchClick}
+        />
+
+        {!isDouble && showChampion && (
+          <div>
+            <span className="sa-td-bracket-col__label sa-td-bracket-col__label--gold">
+              {String(hasOitavas ? 5 : 4).padStart(2, '0')} // TROFÉU & GLÓRIA
+            </span>
+            <div className="sa-td-bracket-col__stack sa-td-bracket-col__stack--final">
+              <ChampionCard
+                championName={championName}
+                championLogo={championLogo}
+                championTag={championTag}
+                champLogo={champLogo}
+                hasChampion={hasChampion}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isDouble && losersByRound.length > 0 && (
+        <>
+          <div className="sa-td-bracket-section-title sa-td-bracket-section-title--losers">
+            02 // CHAVE INFERIOR (LOSERS)
+          </div>
+          <div className="sa-td-bracket sa-td-bracket--losers">
+            {losersByRound.map((group, idx) => (
+              <RoundColumn
+                key={group.round}
+                label={`${String(idx + 1).padStart(2, '0')} // ${phaseLabel(group.round)}`}
+                matches={group.matches}
+                onMatchClick={onMatchClick}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {isDouble && (
+        <>
+          <div className="sa-td-bracket-section-title sa-td-bracket-section-title--gold">
+            03 // GRANDE FINAL
+          </div>
+          <div className="sa-td-bracket sa-td-bracket--grand">
+            <RoundColumn
+              label="GRANDE FINAL"
+              matches={grandFinal ? [grandFinal] : []}
+              format="MD5"
+              highlight
+              gold
+              stackClass="sa-td-bracket-col__stack--final"
+              onMatchClick={onMatchClick}
+            />
+            {showChampion && (
+              <div>
+                <span className="sa-td-bracket-col__label sa-td-bracket-col__label--gold">
+                  TROFÉU & GLÓRIA
+                </span>
+                <div className="sa-td-bracket-col__stack sa-td-bracket-col__stack--final">
+                  <ChampionCard
+                    championName={championName}
+                    championLogo={championLogo}
+                    championTag={championTag}
+                    champLogo={champLogo}
+                    hasChampion={hasChampion}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const LOSERS_ROUND_ORDER: MatchBracketGame['round'][] = [
+  'LB_R1',
+  'LB_R2',
+  'LB_R3',
+  'LB_R4',
+  'LB_R5',
+  'LB_R6',
+  'LB_FINAL',
+];
+
+const ChampionCard: React.FC<{
+  championName: string;
+  championLogo: string;
+  championTag: string;
+  champLogo: string;
+  hasChampion: boolean;
+}> = ({ championName, championLogo, championTag, champLogo, hasChampion }) => (
+  <div className={`sa-td-champ${!hasChampion ? ' sa-td-champ--empty' : ''}`}>
+    <div className="sa-td-champ__icon">
+      <Trophy aria-hidden />
+    </div>
+    <div className="sa-td-champ__eyebrow">CAMPEÃO DO TORNEIO</div>
+    <div className="sa-td-champ__logo">
+      {isImageSrc(champLogo) ? <img src={champLogo} alt="" /> : championLogo}
+    </div>
+    <h4 className="sa-td-champ__name font-display">{championName}</h4>
+    <span className="sa-td-champ__tag">TAG: [{championTag}]</span>
+    {hasChampion && (
+      <div className="sa-td-champ__done">
+        <CheckCircle2 aria-hidden />
+        TÍTULO CONQUISTADO
+      </div>
+    )}
+  </div>
+);
