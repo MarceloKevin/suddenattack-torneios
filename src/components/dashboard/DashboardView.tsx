@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Activity,
   ArrowRight,
@@ -42,6 +42,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   team,
   recentMatches,
 }) => {
+  const navigate = useNavigate();
   const { stats } = user;
   const firstName = user.name.split(' ')[0];
   const accountId = user.accountId || `#SA-${user.id.slice(-4)}`;
@@ -361,12 +362,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <tbody>
                     {recentMatches.map((match) => {
                       const isWin = match.result === 'VITÓRIA';
+                      const matchPath = paths.tournamentMatch(
+                        match.tournamentId,
+                        match.matchId,
+                      );
                       return (
-                        <tr key={match.id}>
+                        <tr
+                          key={match.id}
+                          className="sa-dash-matches__row"
+                          role="link"
+                          tabIndex={0}
+                          aria-label={`Abrir partida contra ${match.opponent.name}`}
+                          onClick={() => navigate(matchPath)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              navigate(matchPath);
+                            }
+                          }}
+                        >
                           <td>
                             <Link
-                              to={`/torneios/${match.tournamentId}`}
+                              to={paths.tournament(match.tournamentId)}
                               className="sa-dash-matches__tournament"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {match.tournamentName}
                             </Link>

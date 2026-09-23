@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { TournamentFormat, TournamentPrizeTier, TournamentStatus, TournamentStructure, TOURNAMENT_STRUCTURE_LABELS } from '../types';
+import { TournamentFormat, TournamentPrizeTier, TournamentStatus, TournamentStructure, TOURNAMENT_FORMAT_LABELS, TOURNAMENT_STRUCTURE_LABELS, isGroupsStructure } from '../types';
 import {
   Trophy,
   Calendar,
@@ -86,7 +86,9 @@ export const CreateTournament: React.FC = () => {
   const [endDate, setEndDate] = useState('15 NOV 2026');
   const [maxTeams, setMaxTeams] = useState<number>(16);
   const [structure, setStructure] = useState<TournamentStructure>('groups_single_elim');
-  const [format, setFormat] = useState<TournamentFormat>('MD3');
+  const [groupFormat, setGroupFormat] = useState<TournamentFormat>('MD1');
+  const [knockoutFormat, setKnockoutFormat] = useState<TournamentFormat>('MD3');
+  const [finalFormat, setFinalFormat] = useState<TournamentFormat>('MD5');
   const [status, setStatus] = useState<TournamentStatus>('open');
   const [prizePoolSummary, setPrizePoolSummary] = useState('Premiação em cache, pontos e reais');
   const [error, setError] = useState('');
@@ -179,7 +181,12 @@ export const CreateTournament: React.FC = () => {
       secondPlacePrize: findRewardForPlace(cleaned, 2) || '—',
       thirdPlacePrize: findRewardForPlace(cleaned, 3) || '—',
       prizeTiers: cleaned,
-      format,
+      format: knockoutFormat,
+      phaseFormats: {
+        groups: groupFormat,
+        knockout: knockoutFormat,
+        final: finalFormat,
+      },
       status,
     });
 
@@ -332,22 +339,64 @@ export const CreateTournament: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div
+              className={`grid grid-cols-1 gap-4 ${
+                isGroupsStructure(structure) ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+              }`}
+            >
+              {isGroupsStructure(structure) && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#9298A5] mb-1.5">
+                    Formato — Fase de grupos
+                  </label>
+                  <select
+                    value={groupFormat}
+                    onChange={(e) => setGroupFormat(e.target.value as TournamentFormat)}
+                    className="w-full bg-[#0E1016] border border-[#272B35] px-3.5 py-2.5 text-xs sm:text-sm text-[#F5F5F5] focus:border-[#E31B23] focus:outline-none"
+                  >
+                    {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                      <option key={key} value={key}>
+                        {TOURNAMENT_FORMAT_LABELS[key]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#9298A5] mb-1.5">
-                  Formato das Partidas
+                  Formato — Mata-mata
                 </label>
                 <select
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value as TournamentFormat)}
+                  value={knockoutFormat}
+                  onChange={(e) => setKnockoutFormat(e.target.value as TournamentFormat)}
                   className="w-full bg-[#0E1016] border border-[#272B35] px-3.5 py-2.5 text-xs sm:text-sm text-[#F5F5F5] focus:border-[#E31B23] focus:outline-none"
                 >
-                  <option value="MD1">MD1 (Melhor de 1 Mapa - Tiro Curto)</option>
-                  <option value="MD3">MD3 (Melhor de 3 Mapas - Padrão)</option>
-                  <option value="MD5">MD5 (Melhor de 5 Mapas - Maratona)</option>
+                  {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                    <option key={key} value={key}>
+                      {TOURNAMENT_FORMAT_LABELS[key]}
+                    </option>
+                  ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#9298A5] mb-1.5">
+                  Formato — Final
+                </label>
+                <select
+                  value={finalFormat}
+                  onChange={(e) => setFinalFormat(e.target.value as TournamentFormat)}
+                  className="w-full bg-[#0E1016] border border-[#272B35] px-3.5 py-2.5 text-xs sm:text-sm text-[#F5F5F5] focus:border-[#E31B23] focus:outline-none"
+                >
+                  {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                    <option key={key} value={key}>
+                      {TOURNAMENT_FORMAT_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#9298A5] mb-1.5">
                   Status Inicial

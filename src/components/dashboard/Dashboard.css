@@ -927,6 +927,15 @@
   transition: background 150ms ease;
 }
 
+.sa-dash-matches__row {
+  cursor: pointer;
+}
+
+.sa-dash-matches__row:focus-visible {
+  outline: 1px solid rgba(255, 22, 61, 0.55);
+  outline-offset: -1px;
+}
+
 .sa-dash-matches tbody tr:hover {
   background: rgba(255, 22, 61, 0.04);
 }

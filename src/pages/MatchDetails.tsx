@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/ui/Card';
 import {
   buildDefaultMapVeto,
+  getMapImageByName,
   getMatchFormat,
   getTournamentMatches,
   matchStatusLabel,
   phaseLabel,
 } from '../utils/matchHelpers';
 import { getRosterSlot } from '../utils/rosterHelpers';
-import { MapVetoEntry, Team, TeamMember } from '../types';
+import { Team, TeamMember } from '../types';
 import {
   AlertCircle,
   ArrowLeft,
@@ -22,7 +23,11 @@ import {
   Trophy,
 } from 'lucide-react';
 import '../components/match/MatchDetails.css';
+import '../components/match/MatchSections.css';
 import { PlayedMaps } from '../components/match/PlayedMaps';
+import { MatchEvidencePanel } from '../components/match/MatchEvidencePanel';
+import { MatchChatPanel } from '../components/match/MatchChatPanel';
+import { BrazilFlag } from '../components/team/shared';
 import { paths } from '../utils/paths';
 
 const FALLBACK_AVATARS = [
@@ -47,28 +52,6 @@ const FALLBACK_NICKS = [
 
 const DEFAULT_MATCH_BG =
   'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&h=600&fit=crop&q=80';
-
-const MAP_THUMBS: Record<string, string> = {
-  crossport:
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=240&h=140&fit=crop&q=70',
-  oldtown:
-    'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=240&h=140&fit=crop&q=70',
-  citycat:
-    'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=240&h=140&fit=crop&q=70',
-  provence:
-    'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=240&h=140&fit=crop&q=70',
-  depot5:
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=240&h=140&fit=crop&q=70',
-  depot3:
-    'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=240&h=140&fit=crop&q=70',
-  dragonroad:
-    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=240&h=140&fit=crop&q=70',
-};
-
-const mapThumbSrc = (mapName: string) => {
-  const key = mapName.toLowerCase().replace(/[\s_-]/g, '');
-  return MAP_THUMBS[key];
-};
 
 const isImageSrc = (value?: string) =>
   !!value && (value.startsWith('http') || value.startsWith('data:') || value.startsWith('/'));
@@ -198,47 +181,63 @@ const TeamLogo: React.FC<{
   </div>
 );
 
-const PlayerRow: React.FC<{
-  player: TeamMember;
-  reserve?: boolean;
-}> = ({ player, reserve }) => {
-  const isCaptain = player.role === 'CAPITÃO';
+const roleClass = (player: TeamMember) => {
+  if (player.role === 'CAPITÃO') return 'sa-ms-player__role--captain';
   const role = inGameRoleLabel(player);
+  if (role === 'SNA') return 'sa-ms-player__role--sna';
+  return '';
+};
+
+const StarterCard: React.FC<{ player: TeamMember }> = ({ player }) => {
+  const isCaptain = player.role === 'CAPITÃO';
+  const role = isCaptain ? 'CAPITÃO' : inGameRoleLabel(player);
 
   return (
-    <div className={`sa-match-player ${reserve ? 'sa-match-player--reserve' : ''}`}>
-      <div className="sa-match-player__avatar">
+    <article className="sa-ms-player">
+      <div className="sa-ms-player__photo">
         {isImageSrc(player.avatar) ? (
           <img src={player.avatar} alt={player.nickname} />
         ) : (
-          <span className="sa-match-player__avatar-fallback">
+          <span className="sa-ms-player__photo-fallback">
             {player.nickname.slice(0, 2).toUpperCase()}
           </span>
         )}
       </div>
-      <div className="sa-match-player__body">
-        <p className="sa-match-player__nick">
-          <Link to={paths.player(player.userId)} className="hover:text-[#2DD4BF] transition-colors">
-            {player.nickname}
-          </Link>
+      <div className="sa-ms-player__info">
+        <div className="sa-ms-player__nick-row">
+          <BrazilFlag className="w-[14px] h-[10px] shrink-0" />
+          <h4 className="sa-ms-player__nick">
+            <Link to={paths.player(player.userId)}>{player.nickname}</Link>
+          </h4>
+        </div>
+        <p className="sa-ms-player__name">{player.name}</p>
+        <span className={`sa-ms-player__role ${roleClass(player)}`}>{role}</span>
+        <span className="sa-ms-player__badge">Titular</span>
+      </div>
+    </article>
+  );
+};
+
+const ReserveCard: React.FC<{ player: TeamMember }> = ({ player }) => {
+  const role = inGameRoleLabel(player);
+  return (
+    <div className="sa-ms-reserve">
+      <div className="sa-ms-reserve__avatar">
+        {isImageSrc(player.avatar) ? (
+          <img src={player.avatar} alt={player.nickname} />
+        ) : (
+          <span className="sa-ms-reserve__avatar-fallback">
+            {player.nickname.slice(0, 2).toUpperCase()}
+          </span>
+        )}
+      </div>
+      <div className="sa-ms-reserve__body">
+        <p className="sa-ms-reserve__nick">
+          <Link to={paths.player(player.userId)}>{player.nickname}</Link>
         </p>
-        <p className="sa-match-player__name">{player.name}</p>
+        <p className="sa-ms-reserve__name">{player.name}</p>
       </div>
-      <div className="sa-match-player__badges">
-        {isCaptain && <span className="sa-match-chip sa-match-chip--captain">Capitão</span>}
-        <span
-          className={`sa-match-chip ${
-            role === 'SNA' ? 'sa-match-chip--sna' : 'sa-match-chip--rifle'
-          }`}
-        >
-          {role}
-        </span>
-        <span
-          className={`sa-match-online sa-match-online--${player.status}`}
-          title={player.status}
-          aria-label={player.status}
-        />
-      </div>
+      <span className="sa-ms-reserve__role">{role}</span>
     </div>
   );
 };
@@ -255,23 +254,23 @@ const TeamRosterCard: React.FC<{
   const { lineup, reserves } = splitRoster(members);
 
   return (
-    <article className="sa-match-team">
-      <header className="sa-match-team__head">
-        <div className="sa-match-team__logo">
+    <article className="sa-ms-team">
+      <header className="sa-ms-team__head">
+        <div className="sa-ms-team__logo">
           {isImageSrc(teamLogo) ? (
             <img src={teamLogo} alt={teamName} />
           ) : (
             <span>{teamLogo}</span>
           )}
         </div>
-        <div className="sa-match-team__info">
-          <h3 className="sa-match-team__name font-display">
+        <div className="sa-ms-team__info">
+          <h3 className="sa-ms-team__name">
             <Link to={paths.team(teamId)}>{teamName}</Link>
           </h3>
           {matchCompleted && (
             <span
-              className={`sa-match-team__outcome ${
-                isWinner ? 'sa-match-team__outcome--win' : 'sa-match-team__outcome--loss'
+              className={`sa-ms-team__outcome ${
+                isWinner ? 'sa-ms-team__outcome--win' : 'sa-ms-team__outcome--loss'
               }`}
             >
               {isWinner ? (
@@ -284,63 +283,40 @@ const TeamRosterCard: React.FC<{
             </span>
           )}
         </div>
-        <span className="sa-match-team__tag">[{teamTag}]</span>
+        <span className="sa-ms-team__tag">[{teamTag}]</span>
       </header>
 
       <div>
-        <h4 className="sa-match-group__title">★ Titulares</h4>
-        <div className="sa-match-players">
+        <h4 className="sa-ms-team__section-title">★ Titulares</h4>
+        <div className="sa-ms-starters">
           {lineup.map((player) => (
-            <PlayerRow key={player.userId} player={player} />
+            <StarterCard key={player.userId} player={player} />
           ))}
         </div>
       </div>
 
       <div>
-        <h4 className="sa-match-group__title sa-match-group__title--muted">Reservas</h4>
-        <div className="sa-match-players">
-          {reserves.length > 0 ? (
-            reserves.map((player) => (
-              <PlayerRow key={player.userId} player={player} reserve />
-            ))
-          ) : (
-            <p className="sa-match-empty">Sem reservas</p>
-          )}
-        </div>
+        <h4 className="sa-ms-team__section-title sa-ms-team__section-title--muted">
+          ★ Reservas
+        </h4>
+        {reserves.length > 0 ? (
+          <div className="sa-ms-reserves">
+            {reserves.map((player) => (
+              <ReserveCard key={player.userId} player={player} />
+            ))}
+          </div>
+        ) : (
+          <p className="sa-ms-empty">Sem reservas</p>
+        )}
       </div>
     </article>
   );
 };
 
-const mapCardClass = (status: MapVetoEntry['status']) => {
-  switch (status) {
-    case 'PICKED':
-      return 'sa-match-map--pick';
-    case 'BANNED_TEAM1':
-      return 'sa-match-map--veto-t1';
-    case 'BANNED_TEAM2':
-      return 'sa-match-map--veto-t2';
-    default:
-      return '';
-  }
-};
-
-const mapStatusClass = (status: MapVetoEntry['status']) => {
-  switch (status) {
-    case 'PICKED':
-      return 'sa-match-map__status--pick';
-    case 'BANNED_TEAM1':
-      return 'sa-match-map__status--veto-t1';
-    case 'BANNED_TEAM2':
-      return 'sa-match-map__status--veto-t2';
-    default:
-      return 'sa-match-map__status--pool';
-  }
-};
-
 export const MatchDetails: React.FC = () => {
   const { id, matchId } = useParams<{ id: string; matchId: string }>();
-  const { tournaments, teams } = useAuth();
+  const { tournaments, teams, maps, addMatchEvidence, addMatchChatMessage, callMatchAdmin, currentUser } =
+    useAuth();
 
   const tournament = tournaments.find((t) => t.id === id) || tournaments[0];
   const matches = useMemo(() => getTournamentMatches(tournament), [tournament]);
@@ -371,8 +347,14 @@ export const MatchDetails: React.FC = () => {
   }
 
   const status = matchStatusLabel(match.status);
-  const mapVeto = buildDefaultMapVeto(match);
-  const format = getMatchFormat(match);
+  const tournamentMaps = tournament.mapIds?.length
+    ? maps.filter((m) => tournament.mapIds!.includes(m.id))
+    : maps;
+  const mapPool =
+    tournamentMaps.length > 0 ? tournamentMaps.map((m) => m.name) : maps.map((m) => m.name);
+  const mapVeto = buildDefaultMapVeto(match, mapPool);
+  const mapThumbSrc = (mapName: string) => getMapImageByName(mapName, maps);
+  const format = getMatchFormat(match, tournament);
   const team1Members = resolveMembers(teams, match.team1.id, match.team1.tag);
   const team2Members = resolveMembers(teams, match.team2.id, match.team2.tag);
   const team1Logo =
@@ -544,96 +526,130 @@ export const MatchDetails: React.FC = () => {
           />
         )}
 
-        {/* Lineups & Veto */}
-        <section aria-label="Lineups e veto de mapas">
-          <div className="sa-match-section__head">
-            <div className="sa-match-section__label-row">
-              <span className="sa-match-section__label">Confrontos</span>
-              <span className="sa-match-section__label-line" aria-hidden />
-            </div>
-            <h2 className="sa-match-section__title font-display">Lineups & Veto</h2>
+        <section className="sa-ms-row" aria-label="Chat e veto da partida">
+          <div className="sa-ms-row__chat">
+            <MatchChatPanel
+              messages={match.chatMessages ?? []}
+              currentUser={currentUser}
+              adminCalled={match.adminCalled}
+              adminCalledAt={match.adminCalledAt}
+              adminCalledBy={match.adminCalledBy}
+              onSend={(text) => addMatchChatMessage(tournament.id, match.id, text)}
+              onCallAdmin={() => callMatchAdmin(tournament.id, match.id)}
+            />
           </div>
 
-          <div className="sa-match-body">
-            <div className="sa-match-lineups">
-              <TeamRosterCard
-                teamId={match.team1.id}
-                teamName={match.team1.name}
-                teamTag={match.team1.tag}
-                teamLogo={team1Logo}
-                members={team1Members}
-                isWinner={match.team1.isWinner}
-                matchCompleted={matchCompleted}
-              />
-              <TeamRosterCard
-                teamId={match.team2.id}
-                teamName={match.team2.name}
-                teamTag={match.team2.tag}
-                teamLogo={team2Logo}
-                members={team2Members}
-                isWinner={match.team2.isWinner}
-                matchCompleted={matchCompleted}
-              />
-            </div>
+          <aside className="sa-ms-row__veto sa-ms-veto">
+            <h3 className="sa-ms-veto__title">
+              <span className="sa-ms-veto__marks" aria-hidden>
+                <span />
+                <span />
+                <span />
+                <span />
+              </span>
+              VETO DE MAPAS
+            </h3>
+            <div className="sa-ms-veto__list">
+              {mapVeto.map((entry) => {
+                const vetoOwner =
+                  entry.status === 'BANNED_TEAM1'
+                    ? match.team1.tag
+                    : entry.status === 'BANNED_TEAM2'
+                      ? match.team2.tag
+                      : entry.status === 'PICKED'
+                        ? match.team1.isWinner
+                          ? match.team1.tag
+                          : match.team2.isWinner
+                            ? match.team2.tag
+                            : match.team1.tag
+                        : null;
 
-            <aside className="sa-match-veto">
-              <h3 className="sa-match-veto__title">Veto de mapas</h3>
-              <div className="sa-match-veto__list">
-                {mapVeto.map((entry) => {
-                  const vetoOwner =
-                    entry.status === 'BANNED_TEAM1'
-                      ? match.team1.tag
-                      : entry.status === 'BANNED_TEAM2'
-                        ? match.team2.tag
-                        : entry.status === 'PICKED'
-                          ? match.team1.isWinner
-                            ? match.team1.tag
-                            : match.team2.isWinner
-                              ? match.team2.tag
-                              : match.team1.tag
-                          : null;
+                const isPick = entry.status === 'PICKED';
+                const isVeto =
+                  entry.status === 'BANNED_TEAM1' || entry.status === 'BANNED_TEAM2';
+                const statusLabel = isPick ? 'Pick' : isVeto ? 'Veto' : 'Pool';
+                const thumb = mapThumbSrc(entry.map);
 
-                  const statusLabel =
-                    entry.status === 'PICKED'
-                      ? '✓ Pick'
-                      : entry.status === 'BANNED_TEAM1' || entry.status === 'BANNED_TEAM2'
-                        ? `⊘ Veto${vetoOwner ? ` · ${vetoOwner}` : ''}`
-                        : 'Pool';
-
-                  const thumb = mapThumbSrc(entry.map);
-
-                  return (
-                    <div
-                      key={entry.map}
-                      className={`sa-match-map ${mapCardClass(entry.status)}`}
-                    >
-                      <div className="sa-match-map__thumb" aria-hidden>
-                        {thumb ? (
-                          <img src={thumb} alt="" />
-                        ) : (
-                          <span className="sa-match-map__thumb-fallback">
-                            {entry.map.slice(0, 3)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="sa-match-map__body">
-                        <p className="sa-match-map__name">{entry.map}</p>
-                        <p
-                          className={`sa-match-map__status ${mapStatusClass(entry.status)}`}
-                        >
-                          {statusLabel}
-                        </p>
-                      </div>
-                      {vetoOwner && (
-                        <span className="sa-match-map__tag">{vetoOwner}</span>
+                return (
+                  <div key={entry.map} className="sa-ms-map">
+                    <div className="sa-ms-map__thumb" aria-hidden>
+                      {thumb ? (
+                        <img src={thumb} alt="" />
+                      ) : (
+                        <span className="sa-ms-map__thumb-fallback">
+                          {entry.map.slice(0, 3)}
+                        </span>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            </aside>
+                    <div className="sa-ms-map__body">
+                      <p className="sa-ms-map__name">{entry.map}</p>
+                      <p
+                        className={`sa-ms-map__status ${
+                          isPick
+                            ? 'sa-ms-map__status--pick'
+                            : isVeto
+                              ? 'sa-ms-map__status--veto'
+                              : 'sa-ms-map__status--pool'
+                        }`}
+                      >
+                        {isPick ? '✓' : isVeto ? '⊘' : '•'} {statusLabel}
+                      </p>
+                    </div>
+                    {vetoOwner && (
+                      <span className="sa-ms-map__tag">{vetoOwner}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        </section>
+
+        <section className="sa-ms-lineup" aria-label="Lineups da partida">
+          <div className="sa-ms-lineup__head">
+            <h2 className="sa-ms-lineup__title">
+              <span className="sa-ms-lineup__marks" aria-hidden>
+                <span />
+                <span />
+                <span />
+                <span />
+              </span>
+              LINEUP
+            </h2>
+            <Link
+              to={paths.team(match.team1.id)}
+              className="sa-ms-lineup__link"
+            >
+              VER TODOS OS JOGADORES →
+            </Link>
+          </div>
+
+          <div className="sa-ms-lineup__grid">
+            <TeamRosterCard
+              teamId={match.team1.id}
+              teamName={match.team1.name}
+              teamTag={match.team1.tag}
+              teamLogo={team1Logo}
+              members={team1Members}
+              isWinner={match.team1.isWinner}
+              matchCompleted={matchCompleted}
+            />
+            <TeamRosterCard
+              teamId={match.team2.id}
+              teamName={match.team2.name}
+              teamTag={match.team2.tag}
+              teamLogo={team2Logo}
+              members={team2Members}
+              isWinner={match.team2.isWinner}
+              matchCompleted={matchCompleted}
+            />
           </div>
         </section>
+
+        <MatchEvidencePanel
+          evidence={match.evidence ?? []}
+          onSubmit={(data) => addMatchEvidence(tournament.id, match.id, data)}
+        />
       </div>
     </div>
   );

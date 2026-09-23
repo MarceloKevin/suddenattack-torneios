@@ -4,18 +4,15 @@ import {
   Tournament,
   TournamentGroup,
   TournamentMatch,
-  TournamentStructure,
   TournamentTeamRef,
   getConfirmedTeams,
   isDoubleElimStructure,
+  isGroupsStructure,
 } from '../types';
 
 const GROUP_NAMES = ['GRUPO A', 'GRUPO B', 'GRUPO C', 'GRUPO D', 'GRUPO E', 'GRUPO F', 'GRUPO G', 'GRUPO H'];
 
-export { isDoubleElimStructure };
-
-const hasGroups = (structure?: TournamentStructure) =>
-  structure === 'groups_single_elim' || structure === 'groups_double_elim';
+export { isDoubleElimStructure, isGroupsStructure };
 
 const shuffle = <T,>(list: T[]): T[] => {
   const arr = [...list];
@@ -393,7 +390,7 @@ export const generateTournamentTable = (tournament: Tournament): GenerateTableRe
   }
 
   const teamsById = new Map(teams.map((t) => [t.id, t]));
-  const useGroups = hasGroups(tournament.structure);
+  const useGroups = isGroupsStructure(tournament.structure);
 
   if (useGroups && teams.length >= 4) {
     const groups = buildGroups(teams, tournament.id);

@@ -988,6 +988,40 @@
   white-space: nowrap;
 }
 
+.sa-td-team__status--static {
+  position: static;
+  flex-shrink: 0;
+}
+
+.sa-td-team__status--confirmed {
+  border-color: rgba(0, 214, 163, 0.55);
+  color: #00d6a3;
+}
+
+.sa-td-team__status--confirmed .sa-td-team__status-dot {
+  background: #00d6a3;
+  box-shadow: 0 0 6px rgba(0, 214, 163, 0.65);
+}
+
+.sa-td-team__status--pending {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fbbf24;
+}
+
+.sa-td-team__status--pending .sa-td-team__status-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.55);
+}
+
+.sa-td-team {
+  cursor: pointer;
+}
+
+.sa-td-team:focus-visible {
+  outline: 1px solid #ed1c24;
+  outline-offset: 2px;
+}
+
 .sa-td-team__status-dot {
   width: 6px;
   height: 6px;
@@ -1946,6 +1980,14 @@
 .sa-td-modal-team__logo {
   font-size: 28px;
   line-height: 1;
+}
+
+.sa-td-modal-team__logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 1px solid var(--td-border);
+  flex-shrink: 0;
 }
 
 .sa-td-modal-team__name {

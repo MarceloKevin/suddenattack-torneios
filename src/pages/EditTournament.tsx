@@ -20,33 +20,46 @@ import {
   LayoutGrid,
   ListOrdered,
   GitBranch,
+  Map as MapIcon,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   GroupStanding,
   MatchBracketGame,
   TournamentFormat,
+  TournamentPhaseFormats,
   TournamentPrizeTier,
+  TournamentRuleTopic,
   TournamentStatus,
   TournamentStructure,
+  TOURNAMENT_FORMAT_LABELS,
   TOURNAMENT_STRUCTURE_LABELS,
   getConfirmedTeams,
   getPendingTeams,
+  isGroupsStructure,
+  resolvePhaseFormats,
 } from '../types';
 import { getTournamentMatches, matchStatusLabel, phaseLabel } from '../utils/matchHelpers';
 import { teamToRef } from '../utils/tournamentGenerator';
 import { canEditBracketMatch, MatchSlot } from '../utils/bracketHelpers';
 import { TournamentBracket } from '../components/tournament/TournamentBracket';
 import { Modal } from '../components/ui/Modal';
+import { EditTournamentMapsPanel } from '../components/admin/EditTournamentMapsPanel';
 import rankingBg from '../assets/ranking-bg.png';
 import '../components/admin/AdminDashboard.css';
 import '../components/admin/EditTournament.css';
 
-type EditTab = 'info' | 'teams' | 'table' | 'bracket' | 'matches';
+type EditTab = 'info' | 'structure' | 'teams' | 'maps' | 'rules' | 'table' | 'bracket' | 'matches';
 
 type PrizeDraft = TournamentPrizeTier;
+type RuleTopicDraft = TournamentRuleTopic;
 
 const newTierId = () => `prize-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+const newRuleTopicId = () => `rule-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+const countRuleItems = (topics: RuleTopicDraft[]) =>
+  topics.reduce((sum, topic) => sum + topic.items.filter((i) => i.trim()).length, 0);
 
 const formatPlaceLabel = (tier: PrizeDraft) => {
   if (tier.type === 'single' || tier.from === tier.to) return `${tier.from}º COLOCADO`;
@@ -69,7 +82,9 @@ export const EditTournament: React.FC = () => {
     currentUser,
     teams,
     tournaments,
+    maps,
     updateTournament,
+    createMap,
     generateTournamentTable,
     generateTournamentBracket,
     setBracketMatchResult,
@@ -94,12 +109,15 @@ export const EditTournament: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [maxTeams, setMaxTeams] = useState(16);
   const [structure, setStructure] = useState<TournamentStructure>('groups_single_elim');
-  const [format, setFormat] = useState<TournamentFormat>('MD3');
+  const [groupFormat, setGroupFormat] = useState<TournamentFormat>('MD1');
+  const [knockoutFormat, setKnockoutFormat] = useState<TournamentFormat>('MD3');
+  const [finalFormat, setFinalFormat] = useState<TournamentFormat>('MD5');
   const [status, setStatus] = useState<TournamentStatus>('open');
   const [server, setServer] = useState('');
   const [prizePoolSummary, setPrizePoolSummary] = useState('');
   const [prizeTiers, setPrizeTiers] = useState<PrizeDraft[]>([]);
-  const [rulesText, setRulesText] = useState('');
+  const [ruleTopics, setRuleTopics] = useState<RuleTopicDraft[]>([]);
+  const [selectedMapIds, setSelectedMapIds] = useState<string[]>([]);
 
   // Sync form when tournament loads / changes id
   useEffect(() => {
@@ -110,7 +128,10 @@ export const EditTournament: React.FC = () => {
     setEndDate(tournament.endDate);
     setMaxTeams(tournament.maxTeams);
     setStructure(tournament.structure || 'groups_single_elim');
-    setFormat(tournament.format);
+    const phases = resolvePhaseFormats(tournament);
+    setGroupFormat(phases.groups);
+    setKnockoutFormat(phases.knockout);
+    setFinalFormat(phases.final);
     setStatus(tournament.status);
     setServer(tournament.server);
     setPrizePoolSummary(tournament.prizePool);
@@ -141,8 +162,20 @@ export const EditTournament: React.FC = () => {
             },
           ]
     );
-    setRulesText(tournament.rules.join('\n'));
-  }, [tournament?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    setRuleTopics(
+      tournament.rules.length > 0
+        ? tournament.rules.map((topic) => ({
+            ...topic,
+            items: [...topic.items],
+          }))
+        : [{ id: newRuleTopicId(), title: 'Geral', items: [''] }]
+    );
+    setSelectedMapIds(
+      tournament.mapIds?.length
+        ? [...tournament.mapIds]
+        : maps.map((m) => m.id)
+    );
+  }, [tournament?.id, maps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pendingTeams = useMemo(
     () => (tournament ? getPendingTeams(tournament.registeredTeams) : []),
@@ -163,6 +196,16 @@ export const EditTournament: React.FC = () => {
     () => (tournament ? getTournamentMatches(tournament) : []),
     [tournament]
   );
+
+  /** Usa a estrutura salva; se ainda não houver, considera o valor do formulário */
+  const hasGroupStage = isGroupsStructure(tournament?.structure ?? structure);
+  const draftHasGroupStage = isGroupsStructure(structure);
+
+  useEffect(() => {
+    if (!hasGroupStage && tab === 'table') {
+      setTab('bracket');
+    }
+  }, [hasGroupStage, tab]);
 
   const flash = (type: 'ok' | 'err', text: string) => {
     setMessage({ type, text });
@@ -217,6 +260,29 @@ export const EditTournament: React.FC = () => {
     );
   };
 
+  const toggleMap = (mapId: string) => {
+    setSelectedMapIds((prev) =>
+      prev.includes(mapId) ? prev.filter((id) => id !== mapId) : [...prev, mapId]
+    );
+  };
+
+  const selectAllMaps = () => setSelectedMapIds(maps.map((m) => m.id));
+  const clearMaps = () => setSelectedMapIds([]);
+
+  const saveMaps = () => {
+    if (selectedMapIds.length === 0) {
+      flash('err', 'Selecione ao menos um mapa para o torneio.');
+      return;
+    }
+    updateTournament(tournament.id, { mapIds: selectedMapIds });
+    flash('ok', 'Mapas do torneio salvos.');
+  };
+
+  const handleMapCreated = (mapId: string) => {
+    setSelectedMapIds((prev) => (prev.includes(mapId) ? prev : [...prev, mapId]));
+    flash('ok', 'Mapa cadastrado e incluído no pool. Salve para confirmar.');
+  };
+
   const saveInfo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -244,8 +310,6 @@ export const EditTournament: React.FC = () => {
       startDate,
       endDate,
       maxTeams: Number(maxTeams),
-      structure,
-      format,
       status,
       server: server.trim() || tournament.server,
       prizePool: prizePoolSummary.trim() || cleaned[0]?.reward || tournament.prizePool,
@@ -253,13 +317,95 @@ export const EditTournament: React.FC = () => {
       secondPlacePrize: findRewardForPlace(cleaned, 2) || tournament.secondPlacePrize,
       thirdPlacePrize: findRewardForPlace(cleaned, 3) || tournament.thirdPlacePrize,
       prizeTiers: cleaned,
-      rules: rulesText
-        .split('\n')
-        .map((r) => r.trim())
-        .filter(Boolean),
       tag: name.trim().substring(0, 8).toUpperCase().replace(/\s+/g, '') || tournament.tag,
     });
     flash('ok', 'Informações do torneio salvas.');
+  };
+
+  const saveStructure = (e: React.FormEvent) => {
+    e.preventDefault();
+    const phaseFormats: TournamentPhaseFormats = {
+      groups: groupFormat,
+      knockout: knockoutFormat,
+      final: finalFormat,
+    };
+    updateTournament(tournament.id, {
+      structure,
+      format: knockoutFormat,
+      phaseFormats,
+    });
+    flash('ok', 'Estrutura e formatos das partidas salvos.');
+  };
+
+  const saveRules = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = ruleTopics
+      .map((topic) => ({
+        id: topic.id,
+        title: topic.title.trim(),
+        items: topic.items.map((item) => item.trim()).filter(Boolean),
+      }))
+      .filter((topic) => topic.title.length > 0 && topic.items.length > 0);
+
+    if (cleaned.length === 0) {
+      flash('err', 'Adicione ao menos um tópico com título e uma regra.');
+      return;
+    }
+
+    updateTournament(tournament.id, { rules: cleaned });
+    setRuleTopics(cleaned);
+    flash('ok', 'Regras do torneio salvas.');
+  };
+
+  const updateRuleTopic = (topicId: string, patch: Partial<RuleTopicDraft>) => {
+    setRuleTopics((prev) =>
+      prev.map((topic) => (topic.id === topicId ? { ...topic, ...patch } : topic))
+    );
+  };
+
+  const updateRuleItem = (topicId: string, index: number, value: string) => {
+    setRuleTopics((prev) =>
+      prev.map((topic) => {
+        if (topic.id !== topicId) return topic;
+        const items = [...topic.items];
+        items[index] = value;
+        return { ...topic, items };
+      })
+    );
+  };
+
+  const addRuleItem = (topicId: string) => {
+    setRuleTopics((prev) =>
+      prev.map((topic) =>
+        topic.id === topicId ? { ...topic, items: [...topic.items, ''] } : topic
+      )
+    );
+  };
+
+  const removeRuleItem = (topicId: string, index: number) => {
+    setRuleTopics((prev) =>
+      prev.map((topic) => {
+        if (topic.id !== topicId) return topic;
+        if (topic.items.length <= 1) return { ...topic, items: [''] };
+        return { ...topic, items: topic.items.filter((_, i) => i !== index) };
+      })
+    );
+  };
+
+  const addRuleTopic = () => {
+    setRuleTopics((prev) => [
+      ...prev,
+      { id: newRuleTopicId(), title: '', items: [''] },
+    ]);
+  };
+
+  const removeRuleTopic = (topicId: string) => {
+    setRuleTopics((prev) => {
+      if (prev.length <= 1) {
+        return [{ id: newRuleTopicId(), title: '', items: [''] }];
+      }
+      return prev.filter((topic) => topic.id !== topicId);
+    });
   };
 
   const addTeam = (teamId: string) => {
@@ -305,6 +451,13 @@ export const EditTournament: React.FC = () => {
   };
 
   const handleGenerateTable = () => {
+    if (!hasGroupStage) {
+      flash(
+        'err',
+        'Este torneio não tem fase de grupos. Altere a estrutura na aba Estrutura para incluir grupos.'
+      );
+      return;
+    }
     if (
       !window.confirm(
         'Gerar tabela automática? Isso substitui grupos, partidas de grupo e a chave atuais.'
@@ -458,14 +611,16 @@ export const EditTournament: React.FC = () => {
             </p>
           </div>
           <div className="sa-admin-header__actions">
-            <button
-              type="button"
-              className="sa-admin-btn sa-admin-btn--primary"
-              onClick={handleGenerateTable}
-            >
-              <RefreshCw className="w-3.5 h-3.5" aria-hidden />
-              Gerar tabela automática
-            </button>
+            {hasGroupStage && (
+              <button
+                type="button"
+                className="sa-admin-btn sa-admin-btn--primary"
+                onClick={handleGenerateTable}
+              >
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden />
+                Gerar tabela automática
+              </button>
+            )}
           </div>
         </header>
 
@@ -487,8 +642,13 @@ export const EditTournament: React.FC = () => {
           {(
             [
               ['info', 'Informações', Trophy],
+              ['structure', 'Estrutura', Swords],
               ['teams', 'Times', Users],
-              ['table', 'Tabela', LayoutGrid],
+              ['maps', 'Mapas', MapIcon],
+              ['rules', 'Regras', ScrollText],
+              ...(hasGroupStage
+                ? ([['table', 'Tabela', LayoutGrid]] as const)
+                : []),
               ['bracket', 'Mata-mata', GitBranch],
               ['matches', 'Partidas', ListOrdered],
             ] as const
@@ -499,13 +659,24 @@ export const EditTournament: React.FC = () => {
               role="tab"
               aria-selected={tab === key}
               className={`sa-admin-tab${tab === key ? ' sa-admin-tab--active' : ''}`}
-              onClick={() => setTab(key)}
+              onClick={() => setTab(key as EditTab)}
             >
               <Icon className="w-4 h-4" aria-hidden />
               {label}
               {key === 'teams' && (
                 <span className="sa-admin-tab__count">
                   {confirmedTeams.length}/{tournament.maxTeams}
+                </span>
+              )}
+              {key === 'maps' && (
+                <span className="sa-admin-tab__count">{selectedMapIds.length}</span>
+              )}
+              {key === 'rules' && (
+                <span className="sa-admin-tab__count">{countRuleItems(ruleTopics)}</span>
+              )}
+              {key === 'table' && (
+                <span className="sa-admin-tab__count">
+                  {(tournament.groups ?? []).length}
                 </span>
               )}
               {key === 'bracket' && (
@@ -574,25 +745,6 @@ export const EditTournament: React.FC = () => {
 
               <div className="sa-edit-grid-2">
                 <div>
-                  <label className="sa-edit-label">Estrutura</label>
-                  <div className="sa-edit-field">
-                    <Swords className="sa-edit-field__icon" aria-hidden />
-                    <select
-                      value={structure}
-                      onChange={(e) => setStructure(e.target.value as TournamentStructure)}
-                      className="sa-edit-input sa-edit-input--select"
-                    >
-                      {(Object.keys(TOURNAMENT_STRUCTURE_LABELS) as TournamentStructure[]).map(
-                        (key) => (
-                          <option key={key} value={key}>
-                            {TOURNAMENT_STRUCTURE_LABELS[key]}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
-                </div>
-                <div>
                   <label className="sa-edit-label">Máx. de times</label>
                   <div className="sa-edit-field">
                     <Users className="sa-edit-field__icon" aria-hidden />
@@ -606,21 +758,6 @@ export const EditTournament: React.FC = () => {
                       <option value={32}>32 equipes</option>
                     </select>
                   </div>
-                </div>
-              </div>
-
-              <div className="sa-edit-grid-2">
-                <div>
-                  <label className="sa-edit-label">Formato das partidas</label>
-                  <select
-                    value={format}
-                    onChange={(e) => setFormat(e.target.value as TournamentFormat)}
-                    className="sa-edit-input sa-edit-input--select sa-edit-input--full"
-                  >
-                    <option value="MD1">MD1</option>
-                    <option value="MD3">MD3</option>
-                    <option value="MD5">MD5</option>
-                  </select>
                 </div>
                 <div>
                   <label className="sa-edit-label">Status</label>
@@ -643,16 +780,6 @@ export const EditTournament: React.FC = () => {
                   value={server}
                   onChange={(e) => setServer(e.target.value)}
                   className="sa-edit-input sa-edit-input--full"
-                />
-              </div>
-
-              <div>
-                <label className="sa-edit-label">Regras (uma por linha)</label>
-                <textarea
-                  value={rulesText}
-                  onChange={(e) => setRulesText(e.target.value)}
-                  rows={4}
-                  className="sa-edit-textarea"
                 />
               </div>
 
@@ -791,6 +918,226 @@ export const EditTournament: React.FC = () => {
               <button type="submit" className="sa-admin-btn sa-admin-btn--primary">
                 <Save className="w-3.5 h-3.5" aria-hidden />
                 Salvar informações
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── STRUCTURE ── */}
+        {tab === 'structure' && (
+          <form onSubmit={saveStructure} className="sa-admin-panel sa-edit-panel">
+            <div className="sa-edit-panel__body space-y-5">
+              <div className="sa-edit-maps-hero">
+                <div>
+                  <span className="sa-admin-header__label">Chave e séries</span>
+                  <h2 className="sa-edit-section-title" style={{ display: 'block', marginTop: 6 }}>
+                    Estrutura e formatos
+                  </h2>
+                  <p className="sa-edit-maps__hint" style={{ marginTop: 8, maxWidth: 560 }}>
+                    Defina se o campeonato tem fase de grupos e o formato MD de cada etapa: grupos,
+                    mata-mata e final.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="sa-edit-label">Estrutura do torneio</label>
+                <div className="sa-edit-field">
+                  <Swords className="sa-edit-field__icon" aria-hidden />
+                  <select
+                    value={structure}
+                    onChange={(e) => setStructure(e.target.value as TournamentStructure)}
+                    className="sa-edit-input sa-edit-input--select"
+                  >
+                    {(Object.keys(TOURNAMENT_STRUCTURE_LABELS) as TournamentStructure[]).map(
+                      (key) => (
+                        <option key={key} value={key}>
+                          {TOURNAMENT_STRUCTURE_LABELS[key]}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="sa-edit-divider">
+                <span>Formato das partidas por fase</span>
+              </div>
+
+              <div className={`sa-edit-grid-${draftHasGroupStage ? '3' : '2'}`}>
+                {draftHasGroupStage && (
+                  <div>
+                    <label className="sa-edit-label">Fase de grupos</label>
+                    <select
+                      value={groupFormat}
+                      onChange={(e) => setGroupFormat(e.target.value as TournamentFormat)}
+                      className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                    >
+                      {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                        <option key={key} value={key}>
+                          {TOURNAMENT_FORMAT_LABELS[key]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="sa-edit-label">Mata-mata</label>
+                  <select
+                    value={knockoutFormat}
+                    onChange={(e) => setKnockoutFormat(e.target.value as TournamentFormat)}
+                    className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                  >
+                    {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                      <option key={key} value={key}>
+                        {TOURNAMENT_FORMAT_LABELS[key]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="sa-edit-label">Final</label>
+                  <select
+                    value={finalFormat}
+                    onChange={(e) => setFinalFormat(e.target.value as TournamentFormat)}
+                    className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                  >
+                    {(Object.keys(TOURNAMENT_FORMAT_LABELS) as TournamentFormat[]).map((key) => (
+                      <option key={key} value={key}>
+                        {TOURNAMENT_FORMAT_LABELS[key]}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="sa-edit-maps__hint" style={{ marginTop: 8 }}>
+                    Inclui FINAL, LB_FINAL e GRAND_FINAL.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="sa-edit-panel__footer">
+              <p className="sa-edit-toolbar-hint">
+                Salvar estrutura pode alterar as abas Tabela / Mata-mata disponíveis.
+              </p>
+              <button
+                type="button"
+                className="sa-admin-btn"
+                onClick={() => navigate('/dashboard_admin')}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="sa-admin-btn sa-admin-btn--primary">
+                <Save className="w-3.5 h-3.5" aria-hidden />
+                Salvar estrutura
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── MAPS ── */}
+        {tab === 'maps' && (
+          <EditTournamentMapsPanel
+            maps={maps}
+            selectedMapIds={selectedMapIds}
+            onToggleMap={toggleMap}
+            onSelectAll={selectAllMaps}
+            onClear={clearMaps}
+            onSave={saveMaps}
+            createMap={createMap}
+            onMapCreated={handleMapCreated}
+          />
+        )}
+
+        {/* ── RULES ── */}
+        {tab === 'rules' && (
+          <form onSubmit={saveRules} className="sa-admin-panel sa-edit-panel">
+            <div className="sa-edit-panel__body space-y-5">
+              <div className="sa-edit-maps-hero">
+                <div>
+                  <span className="sa-admin-header__label">Regulamento</span>
+                  <h2 className="sa-edit-section-title" style={{ display: 'block', marginTop: 6 }}>
+                    Regras do torneio
+                  </h2>
+                  <p className="sa-edit-maps__hint" style={{ marginTop: 8, maxWidth: 520 }}>
+                    Organize o regulamento em tópicos (ex.: Formato, Armas, Pontualidade). Cada
+                    tópico pode ter várias regras.
+                  </p>
+                </div>
+                <button type="button" className="sa-admin-btn sa-admin-btn--primary" onClick={addRuleTopic}>
+                  <Plus className="w-3.5 h-3.5" aria-hidden />
+                  Novo tópico
+                </button>
+              </div>
+
+              <div className="sa-edit-rules">
+                {ruleTopics.map((topic, topicIndex) => (
+                  <div key={topic.id} className="sa-edit-rule-topic">
+                    <div className="sa-edit-rule-topic__head">
+                      <span className="sa-edit-rule-topic__index">Tópico {topicIndex + 1}</span>
+                      <button
+                        type="button"
+                        className="sa-admin-btn sa-admin-btn--danger"
+                        title="Remover tópico"
+                        onClick={() => removeRuleTopic(topic.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="sa-edit-label">Título do tópico</label>
+                      <input
+                        value={topic.title}
+                        onChange={(e) => updateRuleTopic(topic.id, { title: e.target.value })}
+                        className="sa-edit-input sa-edit-input--full"
+                        placeholder="Ex.: Formato de jogo"
+                        required
+                      />
+                    </div>
+
+                    <div className="sa-edit-rule-topic__items">
+                      <label className="sa-edit-label">Regras do tópico</label>
+                      {topic.items.map((item, itemIndex) => (
+                        <div key={`${topic.id}-${itemIndex}`} className="sa-edit-rule-item">
+                          <input
+                            value={item}
+                            onChange={(e) => updateRuleItem(topic.id, itemIndex, e.target.value)}
+                            className="sa-edit-input sa-edit-input--full"
+                            placeholder={`Regra ${itemIndex + 1}`}
+                          />
+                          <button
+                            type="button"
+                            className="sa-admin-btn sa-admin-btn--ghost"
+                            title="Remover regra"
+                            onClick={() => removeRuleItem(topic.id, itemIndex)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="sa-admin-btn"
+                        onClick={() => addRuleItem(topic.id)}
+                      >
+                        <Plus className="w-3.5 h-3.5" aria-hidden />
+                        Adicionar regra
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="sa-edit-panel__footer">
+              <span className="sa-edit-toolbar-hint">
+                {ruleTopics.length} tópico{ruleTopics.length === 1 ? '' : 's'} ·{' '}
+                {countRuleItems(ruleTopics)} regra
+                {countRuleItems(ruleTopics) === 1 ? '' : 's'}
+              </span>
+              <button type="submit" className="sa-admin-btn sa-admin-btn--primary">
+                <Save className="w-3.5 h-3.5" aria-hidden />
+                Salvar regras
               </button>
             </div>
           </form>
@@ -991,10 +1338,16 @@ export const EditTournament: React.FC = () => {
         )}
 
         {/* ── TABLE ── */}
-        {tab === 'table' && (
+        {tab === 'table' && hasGroupStage && (
           <section className="sa-admin-panel">
             <div className="sa-admin-toolbar">
-              <strong className="sa-edit-section-title">Grupos e classificação</strong>
+              <div>
+                <strong className="sa-edit-section-title">Grupos e classificação</strong>
+                <p className="sa-edit-toolbar-hint">
+                  Estrutura com fase de grupos:{' '}
+                  {TOURNAMENT_STRUCTURE_LABELS[tournament.structure ?? structure]}.
+                </p>
+              </div>
               <button
                 type="button"
                 className="sa-admin-btn sa-admin-btn--primary"
@@ -1007,8 +1360,8 @@ export const EditTournament: React.FC = () => {
 
             {(tournament.groups ?? []).length === 0 ? (
               <div className="sa-admin-empty">
-                Nenhuma tabela de grupos. Use &quot;Gerar tabela automática&quot; ou confira se a
-                estrutura inclui fase de grupos.
+                Nenhuma tabela de grupos. Use &quot;Gerar tabela automática&quot; após confirmar
+                os times inscritos.
               </div>
             ) : (
               <div className="sa-edit-groups">
@@ -1088,6 +1441,22 @@ export const EditTournament: React.FC = () => {
           </section>
         )}
 
+        {tab === 'table' && !hasGroupStage && (
+          <section className="sa-admin-panel">
+            <div className="sa-admin-empty">
+              Este torneio não possui fase de grupos. Na aba{' '}
+              <button type="button" className="sa-edit-link" onClick={() => setTab('structure')}>
+                Estrutura
+              </button>
+              , escolha uma estrutura com &quot;Fase de grupos&quot;, ou use a aba{' '}
+              <button type="button" className="sa-edit-link" onClick={() => setTab('bracket')}>
+                Mata-mata
+              </button>
+              .
+            </div>
+          </section>
+        )}
+
         {/* ── MATA-MATA ── */}
         {tab === 'bracket' && (
           <section className="sa-admin-panel">
@@ -1101,7 +1470,7 @@ export const EditTournament: React.FC = () => {
                   tournament.structure === 'groups_double_elim'
                     ? ' (dupla eliminação: superior + inferior + grande final)'
                     : ' (eliminação única)'}
-                  . Salve a estrutura nas Informações antes de gerar.
+                  . Salve a estrutura na aba Estrutura antes de gerar.
                 </p>
               </div>
               <button
@@ -1264,14 +1633,25 @@ export const EditTournament: React.FC = () => {
               <strong className="sa-edit-section-title">
                 Partidas ({allMatches.length})
               </strong>
-              <button
-                type="button"
-                className="sa-admin-btn sa-admin-btn--primary"
-                onClick={handleGenerateTable}
-              >
-                <RefreshCw className="w-3.5 h-3.5" aria-hidden />
-                Regenerar jogos
-              </button>
+              {hasGroupStage ? (
+                <button
+                  type="button"
+                  className="sa-admin-btn sa-admin-btn--primary"
+                  onClick={handleGenerateTable}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" aria-hidden />
+                  Regenerar jogos
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="sa-admin-btn sa-admin-btn--primary"
+                  onClick={handleGenerateBracket}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" aria-hidden />
+                  Regenerar chave
+                </button>
+              )}
             </div>
 
             <div className="sa-admin-table-wrap">

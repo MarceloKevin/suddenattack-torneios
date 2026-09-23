@@ -113,8 +113,40 @@ export const TOURNAMENT_STRUCTURE_LABELS: Record<TournamentStructure, string> = 
   groups_double_elim: 'Fase de grupos + mata-mata (dupla eliminação)',
 };
 
+export const TOURNAMENT_FORMAT_LABELS: Record<TournamentFormat, string> = {
+  MD1: 'MD1 (Melhor de 1 — tiro curto)',
+  MD3: 'MD3 (Melhor de 3 — padrão)',
+  MD5: 'MD5 (Melhor de 5 — maratona)',
+};
+
+/** Formatos de série por fase do campeonato */
+export interface TournamentPhaseFormats {
+  groups: TournamentFormat;
+  knockout: TournamentFormat;
+  final: TournamentFormat;
+}
+
+export const DEFAULT_PHASE_FORMATS: TournamentPhaseFormats = {
+  groups: 'MD1',
+  knockout: 'MD3',
+  final: 'MD5',
+};
+
+export const resolvePhaseFormats = (tournament: {
+  format?: TournamentFormat;
+  phaseFormats?: Partial<TournamentPhaseFormats>;
+}): TournamentPhaseFormats => ({
+  groups: tournament.phaseFormats?.groups ?? DEFAULT_PHASE_FORMATS.groups,
+  knockout:
+    tournament.phaseFormats?.knockout ?? tournament.format ?? DEFAULT_PHASE_FORMATS.knockout,
+  final: tournament.phaseFormats?.final ?? DEFAULT_PHASE_FORMATS.final,
+});
+
 export const isDoubleElimStructure = (structure?: TournamentStructure) =>
   structure === 'double_elim' || structure === 'groups_double_elim';
+
+export const isGroupsStructure = (structure?: TournamentStructure) =>
+  structure === 'groups_single_elim' || structure === 'groups_double_elim';
 
 export interface TournamentTeamRef {
   id: string;
@@ -127,6 +159,10 @@ export interface TournamentTeamRef {
   registeredAt?: string;
   /** false = inscrito aguardando; true/undefined = confirmado no campeonato */
   confirmed?: boolean;
+  /** IDs dos 5 titulares escalados para o torneio */
+  lineupPlayerIds?: string[];
+  /** IDs dos 2 reservas escalados para o torneio */
+  reservePlayerIds?: string[];
 }
 
 /** Times confirmados pelo admin (ocupam vaga na chave/tabela) */
@@ -162,6 +198,29 @@ export type BracketRound =
 
 export type BracketSide = 'winners' | 'losers' | 'grand';
 
+export interface MatchEvidence {
+  id: string;
+  /** Data URL ou URL da imagem do print */
+  imageUrl: string;
+  comment: string;
+  /** Ex.: 23/09/2026 16:42 */
+  uploadedAt: string;
+  uploadedBy?: string;
+}
+
+export interface MatchChatMessage {
+  id: string;
+  userId: string;
+  nickname: string;
+  avatar?: string;
+  isAdmin?: boolean;
+  text: string;
+  /** Ex.: 23/09/2026 16:42 */
+  sentAt: string;
+  /** Mensagem automática do sistema (ex.: alerta admin) */
+  system?: boolean;
+}
+
 export interface MatchBracketGame {
   id: string;
   round: BracketRound;
@@ -190,6 +249,14 @@ export interface MatchBracketGame {
   playedMaps?: PlayedMapResult[];
   /** Partida decidida por W.O. (walkover) */
   wo?: boolean;
+  /** Prints enviados como prova do resultado */
+  evidence?: MatchEvidence[];
+  /** Chat da partida */
+  chatMessages?: MatchChatMessage[];
+  /** Admin foi chamado para atender a partida */
+  adminCalled?: boolean;
+  adminCalledAt?: string;
+  adminCalledBy?: string;
 }
 
 export interface MapVetoEntry {
@@ -224,6 +291,14 @@ export interface TournamentMatch {
   server?: string;
   mapVeto?: MapVetoEntry[];
   playedMaps?: PlayedMapResult[];
+  /** Prints enviados como prova do resultado */
+  evidence?: MatchEvidence[];
+  /** Chat da partida */
+  chatMessages?: MatchChatMessage[];
+  /** Admin foi chamado para atender a partida */
+  adminCalled?: boolean;
+  adminCalledAt?: string;
+  adminCalledBy?: string;
 }
 
 export interface GroupStanding {
@@ -256,6 +331,14 @@ export interface TournamentPrizeTier {
   reward: string;
 }
 
+/** Tópico do regulamento (ex.: Formato, Armas, Pontualidade) */
+export interface TournamentRuleTopic {
+  id: string;
+  title: string;
+  /** Itens / cláusulas do tópico */
+  items: string[];
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -263,7 +346,10 @@ export interface Tournament {
   description: string;
   banner?: string;
   status: TournamentStatus;
+  /** Formato principal (legado / resumo; preferir phaseFormats) */
   format: TournamentFormat;
+  /** Formatos por fase: grupos, mata-mata e final */
+  phaseFormats?: Partial<TournamentPhaseFormats>;
   /** Estrutura do campeonato (chave / grupos) */
   structure?: TournamentStructure;
   startDate: string;
@@ -285,8 +371,11 @@ export interface Tournament {
   brackets: MatchBracketGame[];
   groups?: TournamentGroup[];
   matches?: TournamentMatch[];
-  rules: string[];
+  /** Regulamento organizado por tópicos */
+  rules: TournamentRuleTopic[];
   server: string;
+  /** IDs dos mapas do catálogo que entram no pool do torneio */
+  mapIds?: string[];
 }
 
 export interface RecentMatch {
@@ -306,4 +395,11 @@ export interface RecentMatch {
   map: string;
   date: string;
   duration: string;
+}
+
+/** Catálogo de mapas administráveis (veto / partidas) */
+export interface GameMap {
+  id: string;
+  name: string;
+  image: string;
 }

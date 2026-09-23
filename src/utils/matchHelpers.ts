@@ -1,17 +1,44 @@
-import { MapVetoEntry, Tournament, TournamentMatch } from '../types';
+import {
+  MapVetoEntry,
+  Tournament,
+  TournamentFormat,
+  TournamentMatch,
+  resolvePhaseFormats,
+} from '../types';
+import { MOCK_MAPS } from '../data/mockData';
 
-export const MAP_POOL = [
-  'Crossport',
-  'Old town',
-  'CityCat',
-  'Provence',
-  'Depot5',
-  'Depot3',
-  'DragonRoad',
-] as const;
+export const MAP_POOL = MOCK_MAPS.map((m) => m.name);
+
+export const getMapImageByName = (
+  mapName: string,
+  catalog: { name: string; image: string }[] = MOCK_MAPS
+): string | undefined => {
+  const normalize = (value: string) => value.toLowerCase().replace(/[\s_-]/g, '');
+  const key = normalize(mapName);
+  return catalog.find((m) => normalize(m.name) === key)?.image;
+};
+
+export const isFinalPhase = (phase: string) =>
+  phase === 'FINAL' || phase === 'GRAND_FINAL' || phase === 'LB_FINAL';
+
+export const isGroupPhase = (phase: string) =>
+  phase.startsWith('GRUPO') || phase === 'FASE DE GRUPOS';
+
+export const resolveMatchFormatFromTournament = (
+  tournament: Tournament,
+  phase: string
+): TournamentFormat => {
+  const formats = resolvePhaseFormats(tournament);
+  if (isFinalPhase(phase)) return formats.final;
+  if (isGroupPhase(phase)) return formats.groups;
+  return formats.knockout;
+};
 
 export const getTournamentMatches = (tournament: Tournament): TournamentMatch[] => {
-  const groupMatches = tournament.matches ?? [];
+  const groupMatches = (tournament.matches ?? []).map((match) => ({
+    ...match,
+    format: match.format || resolveMatchFormatFromTournament(tournament, match.phase),
+  }));
   const bracketMatches: TournamentMatch[] = (tournament.brackets ?? []).map((match) => ({
     id: match.id,
     phase: match.round,
@@ -20,9 +47,13 @@ export const getTournamentMatches = (tournament: Tournament): TournamentMatch[] 
     team2: match.team2,
     status: match.status,
     date: match.date,
-    format:
-      match.round === 'GRAND_FINAL' || match.round === 'FINAL' ? 'MD5' : 'MD3',
+    format: resolveMatchFormatFromTournament(tournament, match.round),
     playedMaps: match.playedMaps,
+    evidence: match.evidence,
+    chatMessages: match.chatMessages,
+    adminCalled: match.adminCalled,
+    adminCalledAt: match.adminCalledAt,
+    adminCalledBy: match.adminCalledBy,
   }));
   return [...groupMatches, ...bracketMatches];
 };
@@ -69,20 +100,24 @@ export const matchStatusLabel = (status: TournamentMatch['status']) => {
   }
 };
 
-export const buildDefaultMapVeto = (match: TournamentMatch): MapVetoEntry[] => {
+export const buildDefaultMapVeto = (
+  match: TournamentMatch,
+  mapPool: readonly string[] = MAP_POOL
+): MapVetoEntry[] => {
   if (match.mapVeto && match.mapVeto.length > 0) return match.mapVeto;
 
+  const pool = mapPool.length > 0 ? [...mapPool] : [...MAP_POOL];
   const normalize = (value: string) => value.toLowerCase().replace(/[\s_-]/g, '');
   const played =
-    MAP_POOL.find((m) => normalize(m) === normalize(match.map || '')) ||
-    (match.status === 'COMPLETED' ? 'DragonRoad' : null);
+    pool.find((m) => normalize(m) === normalize(match.map || '')) ||
+    (match.status === 'COMPLETED' ? pool[0] ?? null : null);
 
   if (match.status === 'SCHEDULED' || !played) {
-    return MAP_POOL.map((map) => ({ map, status: 'AVAILABLE' as const }));
+    return pool.map((map) => ({ map, status: 'AVAILABLE' as const }));
   }
 
   let banToggle = true;
-  return MAP_POOL.map((map) => {
+  return pool.map((map) => {
     if (map === played) {
       return { map, status: 'PICKED' as const };
     }
@@ -92,6 +127,10 @@ export const buildDefaultMapVeto = (match: TournamentMatch): MapVetoEntry[] => {
   });
 };
 
-export const getMatchFormat = (match: TournamentMatch) =>
-  match.format ||
-  (match.phase === 'FINAL' ? 'MD5' : match.phase.startsWith('GRUPO') ? 'MD1' : 'MD3');
+export const getMatchFormat = (match: TournamentMatch, tournament?: Tournament) => {
+  if (match.format) return match.format;
+  if (tournament) return resolveMatchFormatFromTournament(tournament, match.phase);
+  if (isFinalPhase(match.phase)) return 'MD5';
+  if (isGroupPhase(match.phase)) return 'MD1';
+  return 'MD3';
+};

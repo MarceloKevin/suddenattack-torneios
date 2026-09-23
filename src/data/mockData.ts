@@ -1,4 +1,4 @@
-import { User, Team, Tournament, RecentMatch } from '../types';
+import { User, Team, Tournament, RecentMatch, GameMap } from '../types';
 import player1Avatar from '../assets/players/player-1.webp';
 import player2Avatar from '../assets/players/player-2.webp';
 import player3Avatar from '../assets/players/player-3.webp';
@@ -517,6 +517,8 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     description: 'O maior campeonato oficial da temporada de primavera de Sudden Attack. 16 equipes disputando a glória, chave eliminatória simples com semifinais e grande final transmitida ao vivo.',
     status: 'active',
     format: 'MD3',
+    structure: 'single_elim',
+    phaseFormats: { groups: 'MD1', knockout: 'MD3', final: 'MD5' },
     startDate: '20 SET 2026',
     endDate: '28 SET 2026',
     prizePool: 'R$ 1.000',
@@ -526,11 +528,33 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     maxTeams: 16,
     server: 'Servidor Oficial SA #03 - Anti-Cheat Rigoroso',
     rules: [
-      'Regras Oficiais Sudden Attack 5v5 (Search & Destroy).',
-      '8 rounds para troca de lado, vence a equipe com 9 rounds (MD3).',
-      'Map Pool: Third Supply Base, Dragon Road, White Squall, Old Town, Cross Counter.',
-      'Armas restritas: Somente arsenais homologados de campeonato (AK-47, TRG-21, M4A1). Proibido granadas especiais.',
-      'Tolerância de atraso: 10 minutos após o horário agendado.',
+      {
+        id: 'rule-tour1-formato',
+        title: 'Formato de jogo',
+        items: [
+          'Regras Oficiais Sudden Attack 5v5 (Search & Destroy).',
+          '8 rounds para troca de lado, vence a equipe com 9 rounds (MD3).',
+        ],
+      },
+      {
+        id: 'rule-tour1-mapas',
+        title: 'Mapas',
+        items: [
+          'Map Pool: Third Supply Base, Dragon Road, White Squall, Old Town, Cross Counter.',
+        ],
+      },
+      {
+        id: 'rule-tour1-armas',
+        title: 'Armas e equipamentos',
+        items: [
+          'Armas restritas: Somente arsenais homologados de campeonato (AK-47, TRG-21, M4A1). Proibido granadas especiais.',
+        ],
+      },
+      {
+        id: 'rule-tour1-horario',
+        title: 'Pontualidade',
+        items: ['Tolerância de atraso: 10 minutos após o horário agendado.'],
+      },
     ],
     registeredTeams: [
       { id: 'team-sk', name: 'SKILL KINGS', tag: 'SK', logo: '👑', playersCount: 5, seed: 1 },
@@ -655,6 +679,8 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     description: 'Edição de inverno reunindo os melhores clãs do Sudden Attack Brasil.',
     status: 'finished',
     format: 'MD3',
+    structure: 'single_elim',
+    phaseFormats: { groups: 'MD1', knockout: 'MD3', final: 'MD5' },
     startDate: '05 AGO 2026',
     endDate: '15 AGO 2026',
     prizePool: 'R$ 2.000',
@@ -663,7 +689,13 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     thirdPlacePrize: 'R$ 200',
     maxTeams: 16,
     server: 'Servidor Oficial SA #01',
-    rules: ['Regras Search & Destroy 5v5 clássicas'],
+    rules: [
+      {
+        id: 'rule-tour2-geral',
+        title: 'Geral',
+        items: ['Regras Search & Destroy 5v5 clássicas'],
+      },
+    ],
     registeredTeams: [
       { id: 'team-sk', name: 'SKILL KINGS', tag: 'SK', logo: '👑', playersCount: 5, registeredAt: '11/09/2026 11:07', confirmed: true },
       { id: 'team-dw', name: 'DARK WOLVES', tag: 'DW', logo: '🐺', playersCount: 5, registeredAt: '12/09/2026 12:14', confirmed: true },
@@ -694,6 +726,8 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     description: 'Inscrições abertas para a terceira edição da Liga de Elite. Vagas limitadas para times com média K/D superior a 1.20.',
     status: 'open',
     format: 'MD3',
+    structure: 'groups_single_elim',
+    phaseFormats: { groups: 'MD1', knockout: 'MD3', final: 'MD5' },
     startDate: '10 OUT 2026',
     endDate: '25 OUT 2026',
     prizePool: 'R$ 3.500',
@@ -703,26 +737,32 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     maxTeams: 16,
     server: 'Servidor Competitivo SP #02',
     rules: [
-      'Anti-cheat obrigatório em execução com gravação de tela na final.',
-      'Proibido macros e periféricos com auxílio de disparo.',
+      {
+        id: 'rule-tour3-fairplay',
+        title: 'Fair play',
+        items: [
+          'Anti-cheat obrigatório em execução com gravação de tela na final.',
+          'Proibido macros e periféricos com auxílio de disparo.',
+        ],
+      },
     ],
     registeredTeams: [
-      { id: 'team-sk', name: 'SKILL KINGS', tag: 'SK', logo: '👑', playersCount: 5, registeredAt: '15/09/2026 15:35', confirmed: true },
-      { id: 'team-dw', name: 'DARK WOLVES', tag: 'DW', logo: '🐺', playersCount: 5, registeredAt: '16/09/2026 16:42', confirmed: true },
-      { id: 'team-alpha', name: 'TEAM ALPHA', tag: 'ALP', logo: '⚡', playersCount: 4, registeredAt: '17/09/2026 17:49', confirmed: true },
-      { id: 'team-beta', name: 'TEAM BETA', tag: 'BTA', logo: '🎯', playersCount: 5, registeredAt: '18/09/2026 18:56', confirmed: true },
-      { id: 'team-phantom', name: 'PHANTOM SQUAD', tag: 'PHX', logo: '👻', playersCount: 3, registeredAt: '19/09/2026 19:03', confirmed: true },
-      { id: 'team-redforce', name: 'RED FORCE ESPORTS', tag: 'RFE', logo: '🔴', playersCount: 2, registeredAt: '20/09/2026 10:10', confirmed: true },
+      { id: 'team-sk', name: 'SKILL KINGS', tag: 'SK', logo: '👑', playersCount: 7, registeredAt: '15/09/2026 15:35', confirmed: true, lineupPlayerIds: ['user-1', 'user-2', 'user-3', 'user-4', 'user-5'], reservePlayerIds: ['user-6', 'user-7'] },
+      { id: 'team-dw', name: 'DARK WOLVES', tag: 'DW', logo: '🐺', playersCount: 5, registeredAt: '16/09/2026 16:42', confirmed: true, lineupPlayerIds: ['u-dw-1', 'u-dw-2', 'u-dw-3', 'u-dw-4', 'u-dw-5'], reservePlayerIds: [] },
+      { id: 'team-alpha', name: 'TEAM ALPHA', tag: 'ALP', logo: '⚡', playersCount: 5, registeredAt: '17/09/2026 17:49', confirmed: true, lineupPlayerIds: ['u-alp-1', 'u-alp-2', 'u-alp-3', 'u-alp-4'], reservePlayerIds: [] },
+      { id: 'team-beta', name: 'TEAM BETA', tag: 'BTA', logo: '🎯', playersCount: 7, registeredAt: '18/09/2026 18:56', confirmed: true, lineupPlayerIds: ['u-bta-1', 'u-bta-2', 'u-bta-3', 'u-bta-4'], reservePlayerIds: ['u-bta-5'] },
+      { id: 'team-phantom', name: 'PHANTOM SQUAD', tag: 'PHX', logo: '👻', playersCount: 5, registeredAt: '19/09/2026 19:03', confirmed: false },
+      { id: 'team-redforce', name: 'RED FORCE ESPORTS', tag: 'RFE', logo: '🔴', playersCount: 5, registeredAt: '20/09/2026 10:10', confirmed: false },
       { id: 'team-storm', name: 'STORM TROOPERS', tag: 'STM', logo: '⛈️', playersCount: 5, registeredAt: '21/09/2026 11:17', confirmed: true },
       { id: 'team-nexus', name: 'NEXUS GAMING', tag: 'NEX', logo: '💠', playersCount: 5, registeredAt: '22/09/2026 12:24', confirmed: true },
       { id: 'team-valkyrie', name: 'VALKYRIE SA', tag: 'VLK', logo: '🛡️', playersCount: 5, registeredAt: '23/09/2026 13:31', confirmed: true },
-      { id: 'team-bullet', name: 'BULLET PROOF', tag: 'BPF', logo: '💥', playersCount: 5, registeredAt: '24/09/2026 14:38', confirmed: true },
+      { id: 'team-bullet', name: 'BULLET PROOF', tag: 'BPF', logo: '💥', playersCount: 5, registeredAt: '24/09/2026 14:38', confirmed: false },
       { id: 'team-apex', name: 'APEX LEGENDS SA', tag: 'APX', logo: '🦅', playersCount: 5, registeredAt: '10/09/2026 15:45', confirmed: true },
       { id: 'team-titan', name: 'TITAN BRASIL', tag: 'TTN', logo: '⚔️', playersCount: 5, registeredAt: '11/09/2026 16:52', confirmed: true },
-      { id: 'team-iron', name: 'IRON CLAN', tag: 'IRN', logo: '⛓️', playersCount: 5, registeredAt: '12/09/2026 17:59', confirmed: true },
+      { id: 'team-iron', name: 'IRON CLAN', tag: 'IRN', logo: '⛓️', playersCount: 5, registeredAt: '12/09/2026 17:59', confirmed: false },
       { id: 'team-blitz', name: 'BLITZKRIEG', tag: 'BLZ', logo: '⚡', playersCount: 5, registeredAt: '13/09/2026 18:06', confirmed: false },
-      { id: 'team-cobra', name: 'COBRA VIPER', tag: 'CBR', logo: '🐍', playersCount: 5, registeredAt: '14/09/2026 19:13', confirmed: false },
-      { id: 'team-shadow', name: 'SHADOW RUNNERS', tag: 'SRN', logo: '👤', playersCount: 5, registeredAt: '15/09/2026 10:20', confirmed: true },
+      { id: 'team-cobra', name: 'COBRA VIPER', tag: 'CBR', logo: '🐍', playersCount: 7, registeredAt: '14/09/2026 19:13', confirmed: false, lineupPlayerIds: ['u-cbr-1', 'u-cbr-2', 'u-cbr-3', 'u-cbr-4', 'u-cbr-5'], reservePlayerIds: ['u-cbr-6', 'u-cbr-7'] },
+      { id: 'team-shadow', name: 'SHADOW RUNNERS', tag: 'SRN', logo: '👤', playersCount: 5, registeredAt: '15/09/2026 10:20', confirmed: false },
     ],
     groups: [
       {
@@ -848,6 +888,8 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     description: 'Torneio exclusivo de entrada rápida para novas equipes e jogadores em ascensão. Formato rápido de tiro curto MD1 nas etapas iniciais.',
     status: 'open',
     format: 'MD1',
+    structure: 'single_elim',
+    phaseFormats: { groups: 'MD1', knockout: 'MD1', final: 'MD3' },
     startDate: '18 OUT 2026',
     endDate: '22 OUT 2026',
     prizePool: 'R$ 800',
@@ -856,7 +898,13 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     thirdPlacePrize: 'R$ 100',
     maxTeams: 8,
     server: 'Servidor Rookie SA #01',
-    rules: ['Restrito para times sem títulos tier 1'],
+    rules: [
+      {
+        id: 'rule-tour4-elegibilidade',
+        title: 'Elegibilidade',
+        items: ['Restrito para times sem títulos tier 1'],
+      },
+    ],
     registeredTeams: [
       { id: 'team-phantom', name: 'PHANTOM SQUAD', tag: 'PHX', logo: '👻', playersCount: 3, registeredAt: '16/09/2026 11:27', confirmed: false },
       { id: 'team-redforce', name: 'RED FORCE ESPORTS', tag: 'RFE', logo: '🔴', playersCount: 2, registeredAt: '17/09/2026 12:34', confirmed: false },
@@ -871,6 +919,8 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     description: 'Campeonato de elite encerrado no primeiro semestre de 2026. Batalhas históricas nos servidores de Sudden Attack.',
     status: 'finished',
     format: 'MD5',
+    structure: 'groups_single_elim',
+    phaseFormats: { groups: 'MD1', knockout: 'MD3', final: 'MD5' },
     startDate: '20 MAI 2026',
     endDate: '30 MAI 2026',
     prizePool: 'R$ 1.200 + 50k Cache',
@@ -879,7 +929,13 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
     thirdPlacePrize: '50k Cache para cada',
     maxTeams: 16,
     server: 'Servidor Pro Invitational #01',
-    rules: ['Somente equipes convidadas'],
+    rules: [
+      {
+        id: 'rule-tour5-convite',
+        title: 'Convite',
+        items: ['Somente equipes convidadas'],
+      },
+    ],
     registeredTeams: [
       { id: 'team-valkyrie', name: 'VALKYRIE SA', tag: 'VLK', logo: '🛡️', playersCount: 5, registeredAt: '19/09/2026 14:48', confirmed: true },
       { id: 'team-cobra', name: 'COBRA VIPER', tag: 'CBR', logo: '🐍', playersCount: 5, registeredAt: '20/09/2026 15:55', confirmed: true },
@@ -950,6 +1006,31 @@ export const MOCK_TOURNAMENTS: Tournament[] = [
         status: 'COMPLETED',
         date: '20 MAI - 18:00',
         map: 'Crossport',
+        chatMessages: [
+          {
+            id: 'chat-mga1-1',
+            userId: 'user-1',
+            nickname: 'KEVUZIN',
+            isAdmin: true,
+            text: 'Time pronto. Servidor liberado?',
+            sentAt: '20/05/2026 17:52',
+          },
+          {
+            id: 'chat-mga1-2',
+            userId: 'u-cbr-1',
+            nickname: 'VENOM_CBR',
+            text: 'CBR online. Vamos iniciar o veto.',
+            sentAt: '20/05/2026 17:54',
+          },
+          {
+            id: 'chat-mga1-3',
+            userId: 'user-1',
+            nickname: 'KEVUZIN',
+            isAdmin: true,
+            text: 'GG, placar 13x5 Crossport.',
+            sentAt: '20/05/2026 18:41',
+          },
+        ],
       },
       {
         id: 'm-ga-2',
@@ -1435,3 +1516,57 @@ export const MOCK_RECENT_MATCHES: RecentMatch[] = [
     duration: '34 min',
   },
 ];
+
+export const MOCK_MAPS: GameMap[] = [
+  {
+    id: 'map-crossport',
+    name: 'Crossport',
+    image:
+      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-old-town',
+    name: 'Old town',
+    image:
+      'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-citycat',
+    name: 'CityCat',
+    image:
+      'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-provence',
+    name: 'Provence',
+    image:
+      'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-depot5',
+    name: 'Depot5',
+    image:
+      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-depot3',
+    name: 'Depot3',
+    image:
+      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=640&h=360&fit=crop&q=70',
+  },
+  {
+    id: 'map-dragonroad',
+    name: 'DragonRoad',
+    image:
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=640&h=360&fit=crop&q=70',
+  },
+];
+
+/** Pool padrão: todos os mapas do catálogo */
+export const DEFAULT_TOURNAMENT_MAP_IDS = MOCK_MAPS.map((m) => m.id);
+
+MOCK_TOURNAMENTS.forEach((tournament) => {
+  if (!tournament.mapIds?.length) {
+    tournament.mapIds = [...DEFAULT_TOURNAMENT_MAP_IDS];
+  }
+});

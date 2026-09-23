@@ -1,20 +1,25 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
 import { TournamentBracket } from '../components/tournament/TournamentBracket';
 import { GroupStandingsTable } from '../components/tournament/GroupStandingsTable';
 import { TournamentMatchesList } from '../components/tournament/TournamentMatchesList';
-import { Modal } from '../components/ui/Modal';
+import { TournamentRegisterModal } from '../components/tournament/TournamentRegisterModal';
+import { TournamentTeamEntryModal } from '../components/tournament/TournamentTeamEntryModal';
 import { getTournamentMatches } from '../utils/matchHelpers';
-import { TOURNAMENT_STRUCTURE_LABELS, getConfirmedTeams } from '../types';
+import {
+  TOURNAMENT_STRUCTURE_LABELS,
+  getConfirmedTeams,
+  isGroupsStructure,
+  resolvePhaseFormats,
+  TournamentTeamRef,
+} from '../types';
 import {
   Calendar,
   Users,
   Trophy,
   Server,
   ArrowLeft,
-  CheckCircle2,
   FileText,
   AlertCircle,
   Share2,
@@ -26,7 +31,6 @@ import rankingBg from '../assets/ranking-bg.png';
 import saelLogo from '../assets/sael-logo.png';
 import { resolveTeamLogo } from '../utils/teamLogo';
 import { isImageSrc } from '../components/profile/shared';
-import { paths } from '../utils/paths';
 import '../components/tournament/TournamentDetails.css';
 
 type TournamentTab = 'geral' | 'teams' | 'tabela' | 'bracket' | 'partidas' | 'rules';
@@ -57,12 +61,12 @@ const statusLabel = (status: string) => {
 export const TournamentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { tournaments, currentTeam, teams } = useAuth();
+  const { tournaments, currentTeam, teams, registerTeamForTournament } = useAuth();
   const tabParam = searchParams.get('tab');
   const initialTab: TournamentTab = isTournamentTab(tabParam) ? tabParam : 'geral';
   const [activeTab, setActiveTab] = useState<TournamentTab>(initialTab);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [registeredSuccess, setRegisteredSuccess] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TournamentTeamRef | null>(null);
 
   const tournament = tournaments.find((t) => t.id === id);
   const groups = tournament?.groups ?? [];
@@ -70,20 +74,26 @@ export const TournamentDetails: React.FC = () => {
     () => getConfirmedTeams(tournament?.registeredTeams ?? []),
     [tournament]
   );
+  const listedTeams = useMemo(() => {
+    const list = tournament?.registeredTeams ?? [];
+    return [...list].sort((a, b) => {
+      const aOk = a.confirmed !== false ? 0 : 1;
+      const bOk = b.confirmed !== false ? 0 : 1;
+      if (aOk !== bOk) return aOk - bOk;
+      return (a.seed ?? 999) - (b.seed ?? 999);
+    });
+  }, [tournament]);
   const allMatches = useMemo(
     () => (tournament ? getTournamentMatches(tournament) : []),
     [tournament]
   );
   const heroBg = tournament?.banner || rankingBg;
-
-  const handleRegisterTeam = () => {
-    setRegisteredSuccess(true);
-    setTimeout(() => {
-      setIsRegisterModalOpen(false);
-      setRegisteredSuccess(false);
-      alert('Sua equipe foi confirmada na chave do torneio!');
-    }, 1500);
-  };
+  const alreadyRegistered = Boolean(
+    currentTeam && tournament?.registeredTeams.some((t) => t.id === currentTeam.id)
+  );
+  const selectedCatalogTeam = selectedEntry
+    ? teams.find((t) => t.id === selectedEntry.id) ?? null
+    : null;
 
   if (!tournament) {
     return (
@@ -149,7 +159,7 @@ export const TournamentDetails: React.FC = () => {
                   onClick={() => setIsRegisterModalOpen(true)}
                 >
                   <UserPlus aria-hidden />
-                  INSCREVER MEU TIME
+                  {alreadyRegistered ? 'ATUALIZAR ESCALAÇÃO' : 'INSCREVER MEU TIME'}
                 </button>
               )}
               <button
@@ -180,7 +190,7 @@ export const TournamentDetails: React.FC = () => {
             onClick={() => setActiveTab('teams')}
             className={`sa-td-tab ${activeTab === 'teams' ? 'is-active' : ''}`}
           >
-            TIMES ({confirmedTeams.length})
+            TIMES ({listedTeams.length})
           </button>
           <button
             type="button"
@@ -221,7 +231,19 @@ export const TournamentDetails: React.FC = () => {
 
             <div className="sa-td-panel sa-td-panel--geral">
               <div className="sa-td-chips">
-                <span className="sa-td-chip">FORMATO: {tournament.format}</span>
+                {(() => {
+                  const phases = resolvePhaseFormats(tournament);
+                  const hasGroups = isGroupsStructure(tournament.structure);
+                  return (
+                    <>
+                      {hasGroups && (
+                        <span className="sa-td-chip">GRUPOS: {phases.groups}</span>
+                      )}
+                      <span className="sa-td-chip">MATA-MATA: {phases.knockout}</span>
+                      <span className="sa-td-chip">FINAL: {phases.final}</span>
+                    </>
+                  );
+                })()}
                 {tournament.structure && (
                   <span className="sa-td-chip sa-td-chip--soft">
                     ESTRUTURA: {TOURNAMENT_STRUCTURE_LABELS[tournament.structure]}
@@ -335,15 +357,28 @@ export const TournamentDetails: React.FC = () => {
               <h2 className="sa-td-teams-head__title font-display">TIMES INSCRITOS</h2>
             </div>
 
-            {confirmedTeams.length > 0 ? (
+            {listedTeams.length > 0 ? (
               <div className="sa-td-teams">
-                {confirmedTeams.map((team, idx) => {
+                {listedTeams.map((team, idx) => {
+                  const isConfirmed = team.confirmed !== false;
                   const rank = team.seed ?? idx + 1;
                   const catalogLogo = teams.find((t) => t.id === team.id)?.logo;
                   const logoSrc = resolveTeamLogo(team.id, team.logo, catalogLogo);
 
                   return (
-                    <article key={team.id} className="sa-td-team">
+                    <article
+                      key={team.id}
+                      className="sa-td-team"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedEntry(team)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedEntry(team);
+                        }
+                      }}
+                    >
                       <div className="sa-td-team__logo" aria-hidden>
                         {isImageSrc(logoSrc) ? (
                           <img src={logoSrc} alt="" />
@@ -354,14 +389,7 @@ export const TournamentDetails: React.FC = () => {
 
                       <div className="sa-td-team__body">
                         <span className="sa-td-team__rank">#{rank}</span>
-                        <h3 className="sa-td-team__name font-display">
-                          <Link
-                            to={paths.team(team.id)}
-                            className="hover:text-[#2DD4BF] transition-colors"
-                          >
-                            {team.name}
-                          </Link>
-                        </h3>
+                        <h3 className="sa-td-team__name font-display">{team.name}</h3>
                         <p className="sa-td-team__meta">
                           <span className="sa-td-team__tag">[{team.tag}]</span>
                           <span className="sa-td-team__dot" aria-hidden>
@@ -373,9 +401,15 @@ export const TournamentDetails: React.FC = () => {
                         </p>
                       </div>
 
-                      <span className="sa-td-team__status">
+                      <span
+                        className={`sa-td-team__status ${
+                          isConfirmed
+                            ? 'sa-td-team__status--confirmed'
+                            : 'sa-td-team__status--pending'
+                        }`}
+                      >
                         <span className="sa-td-team__status-dot" aria-hidden />
-                        ATIVO
+                        {isConfirmed ? 'Confirmado' : 'Inscritos'}
                       </span>
                     </article>
                   );
@@ -488,25 +522,49 @@ export const TournamentDetails: React.FC = () => {
                   <FileText aria-hidden /> FORMATO
                 </h3>
                 <p className="sa-td-rule__body">
-                  Formato oficial deste campeonato: <strong>{tournament.format}</strong>. Servidor
-                  homologado: {tournament.server}.
+                  {(() => {
+                    const phases = resolvePhaseFormats(tournament);
+                    const hasGroups = isGroupsStructure(tournament.structure);
+                    const parts = [
+                      hasGroups ? `fase de grupos em ${phases.groups}` : null,
+                      `mata-mata em ${phases.knockout}`,
+                      `final em ${phases.final}`,
+                    ].filter(Boolean);
+                    return (
+                      <>
+                        Formatos oficiais deste campeonato: {parts.join(', ')}. Servidor
+                        homologado: {tournament.server}.
+                      </>
+                    );
+                  })()}
                 </p>
               </article>
 
-              <article className="sa-td-rule">
-                <h3 className="sa-td-rule__title font-display">
-                  <FileText aria-hidden /> REGRAS
-                </h3>
-                {tournament.rules.length > 0 ? (
-                  <ul className="sa-td-rule__list">
-                    {tournament.rules.map((rule, idx) => (
-                      <li key={idx}>{rule}</li>
-                    ))}
-                  </ul>
-                ) : (
+              {tournament.rules.length > 0 ? (
+                tournament.rules.map((topic) => (
+                  <article key={topic.id} className="sa-td-rule">
+                    <h3 className="sa-td-rule__title font-display">
+                      <FileText aria-hidden /> {topic.title}
+                    </h3>
+                    {topic.items.length > 0 ? (
+                      <ul className="sa-td-rule__list">
+                        {topic.items.map((rule, idx) => (
+                          <li key={`${topic.id}-${idx}`}>{rule}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="sa-td-rule__body">Nenhuma regra neste tópico.</p>
+                    )}
+                  </article>
+                ))
+              ) : (
+                <article className="sa-td-rule">
+                  <h3 className="sa-td-rule__title font-display">
+                    <FileText aria-hidden /> REGRAS
+                  </h3>
                   <p className="sa-td-rule__body">Nenhuma regra adicional publicada.</p>
-                )}
-              </article>
+                </article>
+              )}
 
               <article className="sa-td-rule">
                 <h3 className="sa-td-rule__title font-display">
@@ -540,58 +598,20 @@ export const TournamentDetails: React.FC = () => {
         )}
       </div>
 
-      <Modal
+      <TournamentRegisterModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
-        title="CONFIRMAR INSCRIÇÃO DA EQUIPE"
-      >
-        {currentTeam ? (
-          <div className="space-y-4 text-xs">
-            <p className="text-zinc-300">
-              Você está prestes a inscrever a equipe abaixo no <strong>{tournament.name}</strong>:
-            </p>
-
-            <div className="sa-td-modal-team">
-              <span className="sa-td-modal-team__logo">{currentTeam.logo}</span>
-              <div>
-                <span className="sa-td-modal-team__name">{currentTeam.name}</span>
-                <span className="sa-td-modal-team__meta">
-                  TAG: [{currentTeam.tag}] • {currentTeam.members.length} Jogadores
-                </span>
-              </div>
-            </div>
-
-            <p className="text-[#9298A5]">
-              Ao confirmar, seu clã compromete-se a comparecer nos horários estipulados sob pena de
-              W.O.
-            </p>
-
-            <Button
-              variant="primary"
-              fullWidth
-              size="md"
-              disabled={registeredSuccess}
-              onClick={handleRegisterTeam}
-              leftIcon={<CheckCircle2 className="w-4 h-4" />}
-            >
-              {registeredSuccess ? 'CONFIRMANDO...' : 'CONFIRMAR INSCRIÇÃO'}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4 text-xs text-center">
-            <AlertCircle className="w-8 h-8 mx-auto text-[#E31B23]" />
-            <p className="text-zinc-300">
-              Você precisa possuir ou ser capitão de um time para inscrever-se em torneios de Sudden
-              Attack.
-            </p>
-            <Link to="/time">
-              <Button variant="primary" fullWidth size="sm">
-                CRIAR OU ENCONTRAR TIME
-              </Button>
-            </Link>
-          </div>
-        )}
-      </Modal>
+        tournament={tournament}
+        team={currentTeam}
+        alreadyRegistered={alreadyRegistered}
+        onConfirm={(roster) => registerTeamForTournament(tournament.id, roster)}
+      />
+      <TournamentTeamEntryModal
+        isOpen={Boolean(selectedEntry)}
+        onClose={() => setSelectedEntry(null)}
+        entry={selectedEntry}
+        catalogTeam={selectedCatalogTeam}
+      />
     </div>
   );
 };

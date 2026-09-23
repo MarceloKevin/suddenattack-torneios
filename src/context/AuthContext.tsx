@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
-import { User, Team, Tournament, RecentMatch, TournamentMatch, MatchBracketGame } from '../types';
-import { MOCK_USERS, MOCK_TEAMS, MOCK_TOURNAMENTS, MOCK_RECENT_MATCHES } from '../data/mockData';
+import { User, Team, Tournament, RecentMatch, TournamentMatch, MatchBracketGame, GameMap } from '../types';
+import { MOCK_USERS, MOCK_TEAMS, MOCK_TOURNAMENTS, MOCK_RECENT_MATCHES, MOCK_MAPS } from '../data/mockData';
 import { canAssignRosterSlot } from '../utils/rosterHelpers';
 import { generateTournamentTable as buildTable, generateKnockoutBracket as buildKnockout } from '../utils/tournamentGenerator';
 import { applyBracketMatchResult, BracketMatchResultInput } from '../utils/bracketHelpers';
@@ -12,6 +12,7 @@ interface AuthContextType {
   teams: Team[];
   tournaments: Tournament[];
   recentMatches: RecentMatch[];
+  maps: GameMap[];
   login: (email: string) => boolean;
   register: (name: string, nickname: string, email: string, knownAs?: string, accountId?: string) => void;
   logout: () => void;
@@ -43,6 +44,11 @@ interface AuthContextType {
   deleteUser: (userId: string) => void;
   updateTournament: (tournamentId: string, data: Partial<Tournament>) => void;
   deleteTournament: (tournamentId: string) => void;
+  createMap: (data: { name: string; image: string }) => { ok: boolean; message?: string; id?: string };
+  updateMap: (
+    mapId: string,
+    data: Partial<Pick<GameMap, 'name' | 'image'>>
+  ) => { ok: boolean; message?: string };
   generateTournamentTable: (tournamentId: string) => { ok: boolean; message?: string };
   generateTournamentBracket: (tournamentId: string) => { ok: boolean; message?: string };
   setBracketMatchResult: (
@@ -51,6 +57,24 @@ interface AuthContextType {
     result: BracketMatchResultInput
   ) => { ok: boolean; message?: string; championSet?: boolean };
   releaseMatch: (tournamentId: string, matchId: string) => { ok: boolean; message?: string };
+  addMatchEvidence: (
+    tournamentId: string,
+    matchId: string,
+    data: { imageUrl: string; comment: string }
+  ) => { ok: boolean; message?: string };
+  addMatchChatMessage: (
+    tournamentId: string,
+    matchId: string,
+    text: string
+  ) => { ok: boolean; message?: string };
+  callMatchAdmin: (
+    tournamentId: string,
+    matchId: string
+  ) => { ok: boolean; message?: string };
+  registerTeamForTournament: (
+    tournamentId: string,
+    roster: { lineupPlayerIds: string[]; reservePlayerIds: string[] }
+  ) => { ok: boolean; message?: string };
   // Tournament actions
   createTournament: (tournamentData: Partial<Tournament>) => string;
 }
@@ -64,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [teams, setTeams] = useState<Team[]>(MOCK_TEAMS);
   const [tournaments, setTournaments] = useState<Tournament[]>(MOCK_TOURNAMENTS);
   const [recentMatches] = useState<RecentMatch[]>(MOCK_RECENT_MATCHES);
+  const [maps, setMaps] = useState<GameMap[]>(MOCK_MAPS);
 
   // Sync currentTeam whenever currentUser or teams change
   const currentTeam = currentUser?.teamId
@@ -426,6 +451,290 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { ok: true };
   };
 
+  const addMatchEvidence = (
+    tournamentId: string,
+    matchId: string,
+    data: { imageUrl: string; comment: string }
+  ) => {
+    if (!data.imageUrl) {
+      return { ok: false, message: 'Selecione um print da partida.' };
+    }
+
+    const tournament = tournaments.find((t) => t.id === tournamentId);
+    if (!tournament) return { ok: false, message: 'Torneio não encontrado.' };
+
+    const inMatches = (tournament.matches ?? []).some((m) => m.id === matchId);
+    const inBrackets = (tournament.brackets ?? []).some((m) => m.id === matchId);
+    if (!inMatches && !inBrackets) {
+      return { ok: false, message: 'Partida não encontrada.' };
+    }
+
+    const now = new Date();
+    const uploadedAt = `${String(now.getDate()).padStart(2, '0')}/${String(
+      now.getMonth() + 1
+    ).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}`;
+
+    const entry = {
+      id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      imageUrl: data.imageUrl,
+      comment: data.comment.trim(),
+      uploadedAt,
+      uploadedBy: currentUser?.nickname,
+    };
+
+    setTournaments((prev) =>
+      prev.map((t) => {
+        if (t.id !== tournamentId) return t;
+
+        const append = <M extends TournamentMatch | MatchBracketGame>(match: M): M =>
+          match.id === matchId
+            ? { ...match, evidence: [...(match.evidence ?? []), entry] }
+            : match;
+
+        return {
+          ...t,
+          matches: (t.matches ?? []).map(append),
+          brackets: (t.brackets ?? []).map(append),
+        };
+      })
+    );
+
+    return { ok: true };
+  };
+
+  const formatDateTimeNow = () => {
+    const now = new Date();
+    return `${String(now.getDate()).padStart(2, '0')}/${String(
+      now.getMonth() + 1
+    ).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}`;
+  };
+
+  const patchMatchInTournament = (
+    tournamentId: string,
+    matchId: string,
+    patch: (match: TournamentMatch | MatchBracketGame) => TournamentMatch | MatchBracketGame
+  ) => {
+    setTournaments((prev) =>
+      prev.map((t) => {
+        if (t.id !== tournamentId) return t;
+        return {
+          ...t,
+          matches: (t.matches ?? []).map((m) =>
+            m.id === matchId ? (patch(m) as TournamentMatch) : m
+          ),
+          brackets: (t.brackets ?? []).map((m) =>
+            m.id === matchId ? (patch(m) as MatchBracketGame) : m
+          ),
+        };
+      })
+    );
+  };
+
+  const addMatchChatMessage = (
+    tournamentId: string,
+    matchId: string,
+    text: string
+  ) => {
+    const trimmed = text.trim();
+    if (!trimmed) return { ok: false, message: 'Digite uma mensagem.' };
+    if (!currentUser) return { ok: false, message: 'Faça login para usar o chat.' };
+
+    const tournament = tournaments.find((t) => t.id === tournamentId);
+    if (!tournament) return { ok: false, message: 'Torneio não encontrado.' };
+
+    const inMatches = (tournament.matches ?? []).some((m) => m.id === matchId);
+    const inBrackets = (tournament.brackets ?? []).some((m) => m.id === matchId);
+    if (!inMatches && !inBrackets) {
+      return { ok: false, message: 'Partida não encontrada.' };
+    }
+
+    const message = {
+      id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      userId: currentUser.id,
+      nickname: currentUser.nickname,
+      avatar: currentUser.avatar,
+      isAdmin: Boolean(currentUser.isAdmin),
+      text: trimmed,
+      sentAt: formatDateTimeNow(),
+    };
+
+    patchMatchInTournament(tournamentId, matchId, (match) => ({
+      ...match,
+      chatMessages: [...(match.chatMessages ?? []), message],
+    }));
+
+    return { ok: true };
+  };
+
+  const callMatchAdmin = (tournamentId: string, matchId: string) => {
+    if (!currentUser) return { ok: false, message: 'Faça login para chamar um admin.' };
+
+    const tournament = tournaments.find((t) => t.id === tournamentId);
+    if (!tournament) return { ok: false, message: 'Torneio não encontrado.' };
+
+    const match =
+      (tournament.matches ?? []).find((m) => m.id === matchId) ||
+      (tournament.brackets ?? []).find((m) => m.id === matchId);
+    if (!match) return { ok: false, message: 'Partida não encontrada.' };
+
+    if (match.adminCalled) {
+      return { ok: false, message: 'Um admin já foi chamado nesta partida.' };
+    }
+
+    const sentAt = formatDateTimeNow();
+    const systemMessage = {
+      id: `chat-admin-${Date.now()}`,
+      userId: 'system',
+      nickname: 'SISTEMA',
+      text: `${currentUser.nickname} chamou um ADMIN para esta partida.`,
+      sentAt,
+      system: true,
+      isAdmin: false,
+    };
+
+    patchMatchInTournament(tournamentId, matchId, (m) => ({
+      ...m,
+      adminCalled: true,
+      adminCalledAt: sentAt,
+      adminCalledBy: currentUser.nickname,
+      chatMessages: [...(m.chatMessages ?? []), systemMessage],
+    }));
+
+    return { ok: true, message: 'Admin alertado com sucesso.' };
+  };
+
+  const registerTeamForTournament = (
+    tournamentId: string,
+    roster: { lineupPlayerIds: string[]; reservePlayerIds: string[] }
+  ) => {
+    if (!currentUser || !currentTeam) {
+      return { ok: false, message: 'Você precisa estar em um time para se inscrever.' };
+    }
+
+    const tournament = tournaments.find((t) => t.id === tournamentId);
+    if (!tournament) return { ok: false, message: 'Torneio não encontrado.' };
+    if (tournament.status !== 'open') {
+      return { ok: false, message: 'As inscrições deste torneio não estão abertas.' };
+    }
+
+    const { lineupPlayerIds, reservePlayerIds } = roster;
+    if (lineupPlayerIds.length !== 5) {
+      return { ok: false, message: 'Selecione exatamente 5 jogadores para a Lineup.' };
+    }
+    if (reservePlayerIds.length !== 2) {
+      return { ok: false, message: 'Selecione exatamente 2 jogadores reservas.' };
+    }
+
+    const selected = [...lineupPlayerIds, ...reservePlayerIds];
+    if (new Set(selected).size !== selected.length) {
+      return { ok: false, message: 'Um jogador não pode estar em Lineup e Reserva ao mesmo tempo.' };
+    }
+
+    const memberIds = new Set(currentTeam.members.map((m) => m.userId));
+    if (selected.some((id) => !memberIds.has(id))) {
+      return { ok: false, message: 'Há jogadores inválidos na escalação.' };
+    }
+
+    const now = new Date();
+    const registeredAt = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const entry = {
+      id: currentTeam.id,
+      name: currentTeam.name,
+      tag: currentTeam.tag,
+      logo: currentTeam.logo,
+      playersCount: selected.length,
+      registeredAt,
+      confirmed: false as boolean | undefined,
+      lineupPlayerIds: [...lineupPlayerIds],
+      reservePlayerIds: [...reservePlayerIds],
+    };
+
+    const already = tournament.registeredTeams.some((t) => t.id === currentTeam.id);
+    if (already) {
+      setTournaments((prev) =>
+        prev.map((t) =>
+          t.id !== tournamentId
+            ? t
+            : {
+                ...t,
+                registeredTeams: t.registeredTeams.map((rt) =>
+                  rt.id === currentTeam.id
+                    ? {
+                        ...rt,
+                        playersCount: selected.length,
+                        lineupPlayerIds: entry.lineupPlayerIds,
+                        reservePlayerIds: entry.reservePlayerIds,
+                        registeredAt: rt.registeredAt || registeredAt,
+                      }
+                    : rt
+                ),
+              }
+        )
+      );
+      return { ok: true, message: 'Escalação atualizada com sucesso.' };
+    }
+
+    const confirmedCount = tournament.registeredTeams.filter((t) => t.confirmed !== false).length;
+    if (confirmedCount >= tournament.maxTeams) {
+      return { ok: false, message: 'O torneio já atingiu o limite de times.' };
+    }
+
+    setTournaments((prev) =>
+      prev.map((t) =>
+        t.id !== tournamentId
+          ? t
+          : { ...t, registeredTeams: [...t.registeredTeams, entry] }
+      )
+    );
+    return { ok: true, message: 'Time inscrito. Aguarde a confirmação do admin.' };
+  };
+
+  const createMap = (data: { name: string; image: string }): { ok: boolean; message?: string; id?: string } => {
+    const name = data.name.trim();
+    const image = data.image.trim();
+    if (!name) return { ok: false, message: 'Informe o nome do mapa.' };
+    if (!image) return { ok: false, message: 'Adicione uma imagem do mapa.' };
+
+    const normalize = (value: string) => value.toLowerCase().replace(/[\s_-]/g, '');
+    const duplicate = maps.some((m) => normalize(m.name) === normalize(name));
+    if (duplicate) return { ok: false, message: 'Já existe um mapa com esse nome.' };
+
+    const id = `map-${Date.now()}`;
+    setMaps((prev) => [...prev, { id, name, image }]);
+    return { ok: true, id };
+  };
+
+  const updateMap = (
+    mapId: string,
+    data: Partial<Pick<GameMap, 'name' | 'image'>>
+  ): { ok: boolean; message?: string } => {
+    const target = maps.find((m) => m.id === mapId);
+    if (!target) return { ok: false, message: 'Mapa não encontrado.' };
+
+    const nextName = data.name !== undefined ? data.name.trim() : target.name;
+    const nextImage = data.image !== undefined ? data.image.trim() : target.image;
+    if (!nextName) return { ok: false, message: 'Informe o nome do mapa.' };
+    if (!nextImage) return { ok: false, message: 'Adicione uma imagem do mapa.' };
+
+    const normalize = (value: string) => value.toLowerCase().replace(/[\s_-]/g, '');
+    const duplicate = maps.some(
+      (m) => m.id !== mapId && normalize(m.name) === normalize(nextName)
+    );
+    if (duplicate) return { ok: false, message: 'Já existe um mapa com esse nome.' };
+
+    setMaps((prev) =>
+      prev.map((m) =>
+        m.id === mapId ? { ...m, name: nextName, image: nextImage } : m
+      )
+    );
+    return { ok: true };
+  };
+
   const createTournament = (tournamentData: Partial<Tournament>): string => {
     const newId = `tour-${Date.now()}`;
     const newTournament: Tournament = {
@@ -435,6 +744,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: tournamentData.description || 'Campeonato competitivo oficial da comunidade.',
       status: tournamentData.status || 'open',
       format: tournamentData.format || 'MD3',
+      phaseFormats: tournamentData.phaseFormats || {
+        groups: 'MD1',
+        knockout: tournamentData.format || 'MD3',
+        final: 'MD5',
+      },
       structure: tournamentData.structure || 'single_elim',
       startDate: tournamentData.startDate || '01 NOV 2026',
       endDate: tournamentData.endDate || '10 NOV 2026',
@@ -446,14 +760,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       maxTeams: tournamentData.maxTeams || 16,
       server: 'Servidor Oficial SA #02',
       rules: [
-        'Regras Padrão 5v5 Sudden Attack',
-        'Gravação de partidas obrigatória',
-        'Proibido softwares ilegais',
+        {
+          id: `rule-${Date.now()}`,
+          title: 'Geral',
+          items: [
+            'Regras Padrão 5v5 Sudden Attack',
+            'Gravação de partidas obrigatória',
+            'Proibido softwares ilegais',
+          ],
+        },
       ],
       registeredTeams: [],
       brackets: [],
       groups: [],
       matches: [],
+      mapIds: tournamentData.mapIds ?? [],
     };
 
     setTournaments([newTournament, ...tournaments]);
@@ -469,6 +790,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         teams,
         tournaments,
         recentMatches,
+        maps,
         login,
         register,
         logout,
@@ -485,10 +807,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteUser,
         updateTournament,
         deleteTournament,
+        createMap,
+        updateMap,
         generateTournamentTable,
         generateTournamentBracket,
         setBracketMatchResult,
         releaseMatch,
+        addMatchEvidence,
+        addMatchChatMessage,
+        callMatchAdmin,
+        registerTeamForTournament,
         createTournament,
       }}
     >

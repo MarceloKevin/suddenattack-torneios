@@ -117,13 +117,23 @@ export const TeamHero: React.FC<TeamHeroProps> = ({
               {team.tag}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-[10px] font-mono uppercase tracking-wider text-[#8B93A7]">
-              <span>Brasil</span>
-              <span className="hidden sm:inline text-[#2A3444]">•</span>
-              <span>Fundado em {team.createdAt}</span>
-              <span className="hidden sm:inline text-[#2A3444]">•</span>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1.5 text-sm sm:text-base font-semibold uppercase tracking-wide text-[#D5D8DE]">
+              <span className="text-white">Brasil</span>
+              <span className="hidden sm:inline text-[#E31B23]" aria-hidden>
+                •
+              </span>
               <span>
-                {team.members.length}/{team.maxMembers} jogadores
+                Fundado em{' '}
+                <span className="text-white font-bold">{team.createdAt}</span>
+              </span>
+              <span className="hidden sm:inline text-[#E31B23]" aria-hidden>
+                •
+              </span>
+              <span>
+                <span className="text-white font-bold tabular-nums">
+                  {team.members.length}/{team.maxMembers}
+                </span>{' '}
+                jogadores
               </span>
             </div>
 

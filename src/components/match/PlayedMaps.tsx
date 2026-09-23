@@ -1,27 +1,10 @@
 import React from 'react';
 import { PlayedMapResult } from '../../types';
-
-const MAP_THUMBS: Record<string, string> = {
-  crossport:
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=320&h=180&fit=crop&q=70',
-  oldtown:
-    'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=320&h=180&fit=crop&q=70',
-  citycat:
-    'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=320&h=180&fit=crop&q=70',
-  provence:
-    'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=320&h=180&fit=crop&q=70',
-  depot5:
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=320&h=180&fit=crop&q=70',
-  depot3:
-    'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=320&h=180&fit=crop&q=70',
-  dragonroad:
-    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=320&h=180&fit=crop&q=70',
-};
+import { getMapImageByName } from '../../utils/matchHelpers';
 
 const mapThumbSrc = (mapName: string, image?: string) => {
   if (image) return image;
-  const key = mapName.toLowerCase().replace(/[\s_-]/g, '');
-  return MAP_THUMBS[key];
+  return getMapImageByName(mapName);
 };
 
 const orderLabel = (order: number) => `${order}º MAPA`;

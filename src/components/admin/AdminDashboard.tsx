@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Eye,
+  Map as MapIcon,
   Pencil,
   PlusCircle,
   Search,
@@ -20,9 +21,10 @@ import {
 } from '../../types';
 import rankingBg from '../../assets/ranking-bg.png';
 import { paths } from '../../utils/paths';
+import { AdminMapsPanel } from './AdminMapsPanel';
 import './AdminDashboard.css';
 
-type AdminTab = 'users' | 'tournaments';
+type AdminTab = 'users' | 'tournaments' | 'maps';
 type UserFilter = 'all' | 'admins' | 'players' | 'no-team';
 type TourFilter = 'all' | TournamentStatus;
 
@@ -60,10 +62,13 @@ export const AdminDashboard: React.FC = () => {
     users,
     teams,
     tournaments,
+    maps,
     adminUpdateUser,
     deleteUser,
     updateTournament,
     deleteTournament,
+    createMap,
+    updateMap,
   } = useAuth();
 
   const [tab, setTab] = useState<AdminTab>('users');
@@ -110,6 +115,7 @@ export const AdminDashboard: React.FC = () => {
     users: users.length,
     admins: users.filter((u) => u.isAdmin).length,
     tournaments: tournaments.length,
+    maps: maps.length,
     active: tournaments.filter((t) => t.status === 'active' || t.status === 'open').length,
   };
 
@@ -186,7 +192,7 @@ export const AdminDashboard: React.FC = () => {
               Painel do Administrador
             </h1>
             <p className="sa-admin-header__subtitle">
-              Gerencie usuários cadastrados e torneios criados na plataforma.
+              Gerencie usuários, torneios e o catálogo de mapas da plataforma.
             </p>
           </div>
           <div className="sa-admin-header__actions">
@@ -209,6 +215,10 @@ export const AdminDashboard: React.FC = () => {
           <div className="sa-admin-stat">
             <div className="sa-admin-stat__label">Torneios</div>
             <div className="sa-admin-stat__value">{stats.tournaments}</div>
+          </div>
+          <div className="sa-admin-stat">
+            <div className="sa-admin-stat__label">Mapas</div>
+            <div className="sa-admin-stat__value">{stats.maps}</div>
           </div>
           <div className="sa-admin-stat">
             <div className="sa-admin-stat__label">Abertos / Ativos</div>
@@ -238,6 +248,17 @@ export const AdminDashboard: React.FC = () => {
             <Trophy className="w-4 h-4" aria-hidden />
             Torneios
             <span className="sa-admin-tab__count">{tournaments.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'maps'}
+            className={`sa-admin-tab${tab === 'maps' ? ' sa-admin-tab--active' : ''}`}
+            onClick={() => setTab('maps')}
+          >
+            <MapIcon className="w-4 h-4" aria-hidden />
+            Mapas
+            <span className="sa-admin-tab__count">{maps.length}</span>
           </button>
         </div>
 
@@ -541,6 +562,10 @@ export const AdminDashboard: React.FC = () => {
               )}
             </div>
           </section>
+        )}
+
+        {tab === 'maps' && (
+          <AdminMapsPanel maps={maps} createMap={createMap} updateMap={updateMap} />
         )}
       </div>
     </div>

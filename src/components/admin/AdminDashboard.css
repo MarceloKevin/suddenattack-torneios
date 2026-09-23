@@ -569,6 +569,150 @@
   font-size: 14px;
 }
 
+.sa-admin-map {
+  display: flex;
+  align-items: center;
+}
+
+.sa-admin-map__thumb {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: #0a0e14;
+}
+
+.sa-admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 7, 12, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.sa-admin-modal__panel {
+  width: min(560px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  background: #10141b;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.sa-admin-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 12px;
+  border-bottom: 1px solid rgba(37, 43, 53, 0.85);
+}
+
+.sa-admin-modal__title {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.sa-admin-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px 22px;
+}
+
+.sa-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sa-admin-field__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--admin-secondary);
+}
+
+.sa-admin-field__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: #0b0f15;
+  color: #f2f2f2;
+  font-size: 14px;
+  outline: none;
+}
+
+.sa-admin-field__input:focus {
+  border-color: rgba(227, 27, 35, 0.55);
+}
+
+.sa-admin-map-upload {
+  display: grid;
+  gap: 12px;
+}
+
+.sa-admin-map-upload__preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: #0b0f15;
+}
+
+.sa-admin-map-upload__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sa-admin-map-upload__placeholder {
+  height: 100%;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--admin-secondary);
+  font-size: 13px;
+}
+
+.sa-admin-map-upload__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sa-admin-modal__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(227, 27, 35, 0.35);
+  background: rgba(227, 27, 35, 0.08);
+  color: #ff8a90;
+  font-size: 13px;
+}
+
+.sa-admin-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
 .sa-admin-gate {
   position: relative;
   z-index: 1;
