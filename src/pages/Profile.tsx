@@ -21,6 +21,7 @@ import { UpcomingTournaments } from '../components/profile/UpcomingTournaments';
 import { RecentMatchesTable } from '../components/profile/RecentMatchesTable';
 import { ProfileTab } from '../components/profile/shared';
 import { paths } from '../utils/paths';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import rankingBg from '../assets/ranking-bg.png';
 
 export const Profile: React.FC = () => {
@@ -85,6 +86,10 @@ export const Profile: React.FC = () => {
   useEffect(() => {
     setTab('overview');
   }, [userId]);
+
+  useDocumentTitle(
+    profileUser?.nickname ? `${profileUser.nickname} - Perfil de player` : undefined
+  );
 
   // /perfil sem ID → redireciona para o próprio perfil por ID
   if (!userId) {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { User, Team, Tournament, RecentMatch, TournamentMatch, MatchBracketGame, GameMap } from '../types';
+import { User, Team, Tournament, RecentMatch, TournamentMatch, MatchBracketGame, GameMap, isAdminUserType } from '../types';
 import { MOCK_USERS, MOCK_TEAMS, MOCK_TOURNAMENTS, MOCK_RECENT_MATCHES, MOCK_MAPS } from '../data/mockData';
 import { canAssignRosterSlot } from '../utils/rosterHelpers';
 import { generateTournamentTable as buildTable, generateKnockoutBracket as buildKnockout } from '../utils/tournamentGenerator';
@@ -31,6 +31,7 @@ interface AuthContextType {
     teamId: string,
     data: Partial<Pick<Team, 'name' | 'tag' | 'description' | 'logo' | 'banner'>>
   ) => void;
+  deleteTeam: (teamId: string) => { ok: boolean; message?: string };
   updateMemberRosterSlot: (
     teamId: string,
     userId: string,
@@ -39,9 +40,9 @@ interface AuthContextType {
   // Admin actions
   adminUpdateUser: (
     userId: string,
-    data: Partial<Pick<User, 'role' | 'isAdmin' | 'status' | 'teamId'>>
+    data: Partial<Pick<User, 'role' | 'userType' | 'isAdmin' | 'status' | 'teamId' | 'accountActive'>>
   ) => void;
-  deleteUser: (userId: string) => void;
+  setUserAccountActive: (userId: string, active: boolean) => void;
   updateTournament: (tournamentId: string, data: Partial<Tournament>) => void;
   deleteTournament: (tournamentId: string) => void;
   createMap: (data: { name: string; image: string }) => { ok: boolean; message?: string; id?: string };
@@ -112,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
       status: 'online',
       role: 'player',
+      userType: 'player',
       isAdmin: false,
       teamId: undefined, // starts without a team
       stats: {
@@ -143,10 +145,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsers((prev) => prev.map((u) => (u.id === next.id ? next : u)));
   };
 
-  // Switch between admin and regular player
+  // Switch between admin master and regular player (demo)
   const toggleAdminState = () => {
     if (!currentUser) return;
-    const next = { ...currentUser, isAdmin: !currentUser.isAdmin };
+    const becomingAdmin = !currentUser.isAdmin;
+    const next: User = {
+      ...currentUser,
+      isAdmin: becomingAdmin,
+      userType: becomingAdmin ? 'admin_master' : 'player',
+    };
     setCurrentUser(next);
     setUsers((prev) => prev.map((u) => (u.id === next.id ? next : u)));
   };
@@ -272,19 +279,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const adminUpdateUser = (
     userId: string,
-    data: Partial<Pick<User, 'role' | 'isAdmin' | 'status' | 'teamId'>>
+    data: Partial<Pick<User, 'role' | 'userType' | 'isAdmin' | 'status' | 'teamId' | 'accountActive'>>
   ) => {
+    const patched =
+      data.userType !== undefined
+        ? { ...data, isAdmin: isAdminUserType(data.userType) }
+        : data;
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, ...data } : u))
+      prev.map((u) => (u.id === userId ? { ...u, ...patched } : u))
     );
     if (currentUser?.id === userId) {
-      setCurrentUser({ ...currentUser, ...data });
+      setCurrentUser({ ...currentUser, ...patched });
     }
   };
 
-  const deleteUser = (userId: string) => {
-    if (currentUser?.id === userId) return;
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
+  const setUserAccountActive = (userId: string, active: boolean) => {
+    if (currentUser?.id === userId && !active) return;
+    adminUpdateUser(userId, { accountActive: active, ...(active ? {} : { status: 'offline' }) });
   };
 
   const updateTournament = (tournamentId: string, data: Partial<Tournament>) => {
@@ -352,18 +363,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const tournament = tournaments.find((t) => t.id === tournamentId);
     if (!tournament) return { ok: false, message: 'Torneio não encontrado.' };
 
-    const applied = applyBracketMatchResult(tournament, matchId, result);
-    if (!applied.ok || !applied.tournament) {
-      return { ok: false, message: applied.message || 'Falha ao salvar placar.' };
+    const inBrackets = (tournament.brackets ?? []).some((m) => m.id === matchId);
+    if (inBrackets) {
+      const applied = applyBracketMatchResult(tournament, matchId, result);
+      if (!applied.ok || !applied.tournament) {
+        return { ok: false, message: applied.message || 'Falha ao salvar placar.' };
+      }
+
+      setTournaments((prev) =>
+        prev.map((t) => (t.id === tournamentId ? applied.tournament! : t))
+      );
+      return {
+        ok: true,
+        championSet: Boolean(applied.tournament.championTeam),
+      };
     }
 
+    const inMatches = (tournament.matches ?? []).some((m) => m.id === matchId);
+    if (!inMatches) {
+      return { ok: false, message: 'Partida não encontrada.' };
+    }
+
+    const { score1, score2, winner, wo, date } = result;
     setTournaments((prev) =>
-      prev.map((t) => (t.id === tournamentId ? applied.tournament! : t))
+      prev.map((t) => {
+        if (t.id !== tournamentId) return t;
+        return {
+          ...t,
+          matches: (t.matches ?? []).map((m) => {
+            if (m.id !== matchId) return m;
+            const scheduledDate =
+              date?.trim() && !/^a definir$/i.test(date.trim())
+                ? date.trim()
+                : m.date && !/^a definir$/i.test(m.date)
+                  ? m.date
+                  : undefined;
+            return {
+              ...m,
+              status: 'COMPLETED' as const,
+              date: scheduledDate || m.date || 'Encerrado',
+              team1: {
+                ...m.team1,
+                score: wo ? (winner === 'team1' ? Math.max(score1, 1) : 0) : score1,
+                isWinner: winner === 'team1',
+              },
+              team2: {
+                ...m.team2,
+                score: wo ? (winner === 'team2' ? Math.max(score2, 1) : 0) : score2,
+                isWinner: winner === 'team2',
+              },
+            };
+          }),
+        };
+      })
     );
-    return {
-      ok: true,
-      championSet: Boolean(applied.tournament.championTeam),
-    };
+    return { ok: true };
   };
 
   const releaseMatch = (tournamentId: string, matchId: string) => {
@@ -408,6 +462,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       })
     );
+  };
+
+  const deleteTeam = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return { ok: false, message: 'Equipe não encontrada.' };
+
+    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+    setUsers((prev) =>
+      prev.map((u) => (u.teamId === teamId ? { ...u, teamId: undefined } : u))
+    );
+    if (currentUser?.teamId === teamId) {
+      setCurrentUser({ ...currentUser, teamId: undefined });
+    }
+    setTournaments((prev) =>
+      prev.map((tour) => ({
+        ...tour,
+        registeredTeams: tour.registeredTeams.filter((t) => t.id !== teamId),
+      }))
+    );
+    return { ok: true };
   };
 
   const updateMemberRosterSlot = (
@@ -802,9 +876,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         leaveTeam,
         updateUserProfile,
         updateTeamProfile,
+        deleteTeam,
         updateMemberRosterSlot,
         adminUpdateUser,
-        deleteUser,
+        setUserAccountActive,
         updateTournament,
         deleteTournament,
         createMap,

@@ -380,6 +380,19 @@
   flex-shrink: 0;
 }
 
+.sa-admin-team-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0a1520;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
 .sa-admin-user__meta {
   min-width: 0;
 }
@@ -471,6 +484,16 @@
   border: 1px solid rgba(255, 180, 0, 0.3);
 }
 
+.sa-admin-badge--inactive {
+  background: rgba(255, 22, 61, 0.12);
+  color: #ff6b84;
+  border: 1px solid rgba(255, 22, 61, 0.35);
+}
+
+.sa-admin-row--inactive {
+  opacity: 0.72;
+}
+
 .sa-admin-select {
   height: 34px;
   padding: 0 10px;
@@ -483,6 +506,24 @@
   cursor: pointer;
   outline: none;
   max-width: 160px;
+}
+
+.sa-admin-select--user-type {
+  max-width: 200px;
+  width: 100%;
+}
+
+.sa-admin-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sa-admin-user-type-hint {
+  margin-top: 6px;
+  max-width: 240px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--admin-secondary);
 }
 
 .sa-admin-select:focus {

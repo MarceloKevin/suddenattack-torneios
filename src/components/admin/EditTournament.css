@@ -81,6 +81,38 @@
   color: var(--admin-secondary);
 }
 
+.sa-edit-label--emphasis {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--admin-text);
+}
+
+.sa-edit-structure-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 560px;
+}
+
+.sa-edit-structure-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sa-edit-structure-field__desc {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--admin-muted);
+}
+
+.sa-edit-structure-stack .sa-edit-divider {
+  margin: 4px 0;
+}
+
 .sa-edit-field {
   position: relative;
 }
@@ -433,6 +465,76 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--admin-red);
+}
+
+.sa-edit-swap__intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--admin-secondary);
+}
+
+.sa-edit-swap__intro strong {
+  color: var(--admin-text);
+}
+
+.sa-edit-swap__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.sa-edit-swap__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: #0a0d12;
+  color: var(--admin-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.sa-edit-swap__item:hover {
+  border-color: rgba(255, 22, 61, 0.55);
+  background: rgba(255, 22, 61, 0.08);
+}
+
+.sa-edit-swap__item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sa-edit-swap__item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sa-edit-swap__group-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 22, 61, 0.35);
+  background: rgba(255, 22, 61, 0.12);
+  color: #ff6b84;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sa-edit-num {

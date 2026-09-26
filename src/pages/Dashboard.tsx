@@ -3,9 +3,12 @@ import { Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DashboardView } from '../components/dashboard/DashboardView';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const Dashboard: React.FC = () => {
   const { currentUser, currentTeam, recentMatches } = useAuth();
+
+  useDocumentTitle(currentUser ? `Bem-vindo ${currentUser.nickname}` : undefined);
 
   if (!currentUser) {
     return (

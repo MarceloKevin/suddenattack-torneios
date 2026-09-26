@@ -20,16 +20,9 @@ const TeamLogo: React.FC<{
   name: string;
   logo?: string;
   tag?: string;
-  highlight?: boolean;
-}> = ({ name, logo, tag, highlight }) => (
+}> = ({ name, logo, tag }) => (
   <div className="flex flex-col items-center gap-2 shrink-0">
-    <div
-      className={`w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center p-2.5 transition-transform duration-200 group-hover:scale-[1.03] ${
-        highlight
-          ? 'bg-[#0A1A1C] border-2 border-[#2DD4BF]/70 shadow-[0_0_22px_rgba(45,212,191,0.28)]'
-          : 'bg-[#0C1418] border border-white/10'
-      }`}
-    >
+    <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center p-2.5 transition-transform duration-200 group-hover:scale-[1.03] bg-[#0C1418] border border-white/10">
       {isImageSrc(logo) ? (
         <img src={logo} alt={name} className="w-full h-full object-contain" />
       ) : logo ? (
@@ -40,11 +33,6 @@ const TeamLogo: React.FC<{
         </span>
       )}
     </div>
-    {highlight && (
-      <span className="inline-flex px-2 py-0.5 rounded-full bg-[#E31B23] text-[9px] font-extrabold uppercase tracking-[0.12em] text-white leading-none">
-        Seu time
-      </span>
-    )}
   </div>
 );
 
@@ -171,19 +159,10 @@ const MatchFooter: React.FC<{
 
 interface MatchCardProps {
   match: TeamMatchView;
-  teamName: string;
-  teamLogo?: string;
-  teamTag?: string;
   onOpen: (path: string) => void;
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({
-  match,
-  teamName,
-  teamLogo,
-  teamTag,
-  onOpen,
-}) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onOpen }) => {
   const isWin = match.result === 'VITÓRIA';
   const isLoss = match.result === 'DERROTA';
   const detailsPath = `/torneios/${match.tournamentId}/partidas/${match.matchId}`;
@@ -235,18 +214,11 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Desktop / tablet confrontation */}
         <div
-          className="hidden sm:grid items-center gap-3 md:gap-4"
+          className="hidden sm:grid items-center gap-4 md:gap-6"
           style={{
-            gridTemplateColumns: 'auto minmax(100px, 1fr) auto minmax(100px, 1fr) auto',
+            gridTemplateColumns: 'auto minmax(0, 1fr) auto',
           }}
         >
-          <TeamLogo
-            name={teamName}
-            logo={teamLogo}
-            tag={teamTag}
-            highlight
-          />
-          <TeamInfo name={teamName} tag={teamTag} align="left" />
           <MatchScore
             myScore={match.myScore}
             opponentScore={match.opponentScore}
@@ -267,10 +239,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Mobile confrontation */}
         <div className="flex sm:hidden flex-col items-center gap-4">
-          <div className="flex flex-col items-center gap-2">
-            <TeamLogo name={teamName} logo={teamLogo} tag={teamTag} highlight />
-            <TeamInfo name={teamName} tag={teamTag} align="center" />
-          </div>
           <MatchScore
             myScore={match.myScore}
             opponentScore={match.opponentScore}
@@ -301,8 +269,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
 export const TeamRecentMatches: React.FC<TeamRecentMatchesProps> = ({
   teamName,
-  teamLogo,
-  teamTag,
   matches,
   limit,
 }) => {
@@ -349,9 +315,6 @@ export const TeamRecentMatches: React.FC<TeamRecentMatchesProps> = ({
             <MatchCard
               key={match.id}
               match={match}
-              teamName={teamName}
-              teamLogo={teamLogo}
-              teamTag={teamTag}
               onOpen={(path) => navigate(path)}
             />
           ))}

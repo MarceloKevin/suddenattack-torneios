@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
+import { ImageCropModal } from '../ui/ImageCropModal';
 import { Team } from '../../types';
 import {
   countBySlot,
@@ -99,6 +100,7 @@ export const TeamView: React.FC<TeamViewProps> = ({
   const lineupMembers = team.members.filter((m) => getRosterSlot(m) === 'LINEUP');
   const reservaMembers = team.members.filter((m) => getRosterSlot(m) === 'RESERVA');
   const foraMembers = team.members.filter((m) => getRosterSlot(m) === 'FORA');
+  const [bannerCropSrc, setBannerCropSrc] = useState<string | null>(null);
 
   const openEdit = () => {
     setEditName(team.name);
@@ -251,8 +253,9 @@ export const TeamView: React.FC<TeamViewProps> = ({
                 className="hidden"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
+                  e.target.value = '';
                   if (!file) return;
-                  setEditBanner(await readImageFile(file));
+                  setBannerCropSrc(await readImageFile(file));
                 }}
               />
             </label>
@@ -263,6 +266,18 @@ export const TeamView: React.FC<TeamViewProps> = ({
           </Button>
         </div>
       </Modal>
+
+      <ImageCropModal
+        isOpen={Boolean(bannerCropSrc)}
+        imageSrc={bannerCropSrc}
+        title="Ajustar banner"
+        aspect={16 / 5}
+        onCancel={() => setBannerCropSrc(null)}
+        onConfirm={(cropped) => {
+          setEditBanner(cropped);
+          setBannerCropSrc(null);
+        }}
+      />
 
       {/* Modal Gerenciar Line Up */}
       <Modal

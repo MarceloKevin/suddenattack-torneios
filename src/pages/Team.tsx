@@ -13,6 +13,7 @@ import {
   Sparkles,
   Search,
 } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,12 +43,14 @@ export const TeamPage: React.FC = () => {
   const [editBanner, setEditBanner] = useState('');
   const [teamTab, setTeamTab] = useState<TeamTab>('geral');
 
+  const viewedTeam = teamId ? teams.find((t) => t.id === teamId) ?? null : currentTeam;
+  useDocumentTitle(viewedTeam?.name ? `${viewedTeam.name} - Perfil de equipe` : undefined);
+
   // /time sem ID e com time → redireciona para /time/:teamId
   if (!teamId && currentTeam) {
     return <Navigate to={paths.team(currentTeam.id)} replace />;
   }
 
-  const viewedTeam = teamId ? teams.find((t) => t.id === teamId) ?? null : currentTeam;
   const isOwnTeam = !!viewedTeam && !!currentTeam && viewedTeam.id === currentTeam.id;
 
   const handleCreateTeamSubmit = (e: React.FormEvent) => {

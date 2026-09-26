@@ -8,32 +8,33 @@ import {
   Search,
   Shield,
   ShieldOff,
+  Swords,
   Trash2,
   Trophy,
+  UserX,
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   TournamentStatus,
   TOURNAMENT_STRUCTURE_LABELS,
-  UserRole,
+  USER_TYPE_OPTIONS,
+  UserType,
+  canAssignUserType,
+  canManageUserTypes,
   getConfirmedTeams,
+  resolveUserType,
 } from '../../types';
 import rankingBg from '../../assets/ranking-bg.png';
 import { paths } from '../../utils/paths';
+import { isImageSrc } from '../profile/shared';
 import { AdminMapsPanel } from './AdminMapsPanel';
 import './AdminDashboard.css';
 
-type AdminTab = 'users' | 'tournaments' | 'maps';
+type AdminTab = 'users' | 'teams' | 'tournaments' | 'maps';
 type UserFilter = 'all' | 'admins' | 'players' | 'no-team';
+type TeamFilter = 'all' | 'full' | 'incomplete' | 'titled';
 type TourFilter = 'all' | TournamentStatus;
-
-const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: 'player', label: 'Player' },
-  { value: 'captain', label: 'Capitão' },
-  { value: 'coach', label: 'Coach' },
-  { value: 'admin', label: 'Admin' },
-];
 
 const STATUS_OPTIONS: { value: TournamentStatus; label: string }[] = [
   { value: 'draft', label: 'Rascunho' },
@@ -64,9 +65,10 @@ export const AdminDashboard: React.FC = () => {
     tournaments,
     maps,
     adminUpdateUser,
-    deleteUser,
+    setUserAccountActive,
     updateTournament,
     deleteTournament,
+    deleteTeam,
     createMap,
     updateMap,
   } = useAuth();
@@ -74,6 +76,8 @@ export const AdminDashboard: React.FC = () => {
   const [tab, setTab] = useState<AdminTab>('users');
   const [userQuery, setUserQuery] = useState('');
   const [userFilter, setUserFilter] = useState<UserFilter>('all');
+  const [teamQuery, setTeamQuery] = useState('');
+  const [teamFilter, setTeamFilter] = useState<TeamFilter>('all');
   const [tourQuery, setTourQuery] = useState('');
   const [tourFilter, setTourFilter] = useState<TourFilter>('all');
 
@@ -98,6 +102,23 @@ export const AdminDashboard: React.FC = () => {
     });
   }, [users, userQuery, userFilter]);
 
+  const filteredTeams = useMemo(() => {
+    const q = teamQuery.trim().toLowerCase();
+    return teams.filter((t) => {
+      const isFull = t.members.length >= t.maxMembers;
+      if (teamFilter === 'full' && !isFull) return false;
+      if (teamFilter === 'incomplete' && isFull) return false;
+      if (teamFilter === 'titled' && t.stats.titles <= 0) return false;
+      if (!q) return true;
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.tag.toLowerCase().includes(q) ||
+        t.captainNickname.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q)
+      );
+    });
+  }, [teams, teamQuery, teamFilter]);
+
   const filteredTournaments = useMemo(() => {
     const q = tourQuery.trim().toLowerCase();
     return tournaments.filter((t) => {
@@ -114,6 +135,7 @@ export const AdminDashboard: React.FC = () => {
   const stats = {
     users: users.length,
     admins: users.filter((u) => u.isAdmin).length,
+    teams: teams.length,
     tournaments: tournaments.length,
     maps: maps.length,
     active: tournaments.filter((t) => t.status === 'active' || t.status === 'open').length,
@@ -158,16 +180,48 @@ export const AdminDashboard: React.FC = () => {
     );
   }
 
-  const confirmDeleteUser = (id: string, nickname: string) => {
+  const actorType = resolveUserType(currentUser);
+  const canEditUserTypes = canManageUserTypes(actorType);
+
+  const handleUserTypeChange = (userId: string, nextType: UserType, currentType: UserType) => {
+    if (!canAssignUserType(actorType, currentType, nextType)) return;
+    adminUpdateUser(userId, { userType: nextType });
+  };
+
+  const confirmToggleAccount = (id: string, nickname: string, currentlyActive: boolean) => {
     if (id === currentUser.id) return;
-    if (window.confirm(`Remover o usuário ${nickname}? Esta ação não pode ser desfeita.`)) {
-      deleteUser(id);
+    if (currentlyActive) {
+      if (
+        window.confirm(
+          `Desativar a conta de ${nickname}? O usuário permanecerá no sistema, mas a conta ficará inacessível.`
+        )
+      ) {
+        setUserAccountActive(id, false);
+      }
+      return;
+    }
+    if (window.confirm(`Reativar a conta de ${nickname}?`)) {
+      setUserAccountActive(id, true);
     }
   };
 
   const confirmDeleteTournament = (id: string, name: string) => {
     if (window.confirm(`Excluir o torneio "${name}"? Esta ação não pode ser desfeita.`)) {
       deleteTournament(id);
+    }
+  };
+
+  const confirmDeleteTeam = (id: string, name: string, tag: string) => {
+    if (
+      !window.confirm(
+        `Remover a equipe [${tag}] ${name}?\n\nOs membros ficarão sem time e a equipe sairá das inscrições de torneios.`
+      )
+    ) {
+      return;
+    }
+    const result = deleteTeam(id);
+    if (!result.ok) {
+      window.alert(result.message || 'Não foi possível remover a equipe.');
     }
   };
 
@@ -213,6 +267,10 @@ export const AdminDashboard: React.FC = () => {
             <div className="sa-admin-stat__value">{stats.admins}</div>
           </div>
           <div className="sa-admin-stat">
+            <div className="sa-admin-stat__label">Equipes</div>
+            <div className="sa-admin-stat__value">{stats.teams}</div>
+          </div>
+          <div className="sa-admin-stat">
             <div className="sa-admin-stat__label">Torneios</div>
             <div className="sa-admin-stat__value">{stats.tournaments}</div>
           </div>
@@ -237,6 +295,17 @@ export const AdminDashboard: React.FC = () => {
             <Users className="w-4 h-4" aria-hidden />
             Usuários
             <span className="sa-admin-tab__count">{users.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'teams'}
+            className={`sa-admin-tab${tab === 'teams' ? ' sa-admin-tab--active' : ''}`}
+            onClick={() => setTab('teams')}
+          >
+            <Swords className="w-4 h-4" aria-hidden />
+            Equipes
+            <span className="sa-admin-tab__count">{teams.length}</span>
           </button>
           <button
             type="button"
@@ -306,18 +375,23 @@ export const AdminDashboard: React.FC = () => {
                     <tr>
                       <th>Usuário</th>
                       <th>E-mail</th>
-                      <th>Função</th>
+                      <th>Tipo de usuário</th>
                       <th>Time</th>
                       <th>Status</th>
-                      <th>Admin</th>
                       <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => {
                       const isSelf = user.id === currentUser.id;
+                      const isActive = user.accountActive !== false;
+                      const type = resolveUserType(user);
+                      const typeLocked =
+                        !canEditUserTypes ||
+                        !canAssignUserType(actorType, type, type) ||
+                        (isSelf && type === 'admin_master');
                       return (
-                        <tr key={user.id}>
+                        <tr key={user.id} className={!isActive ? 'sa-admin-row--inactive' : undefined}>
                           <td>
                             <div className="sa-admin-user">
                               <img
@@ -336,21 +410,44 @@ export const AdminDashboard: React.FC = () => {
                           </td>
                           <td>
                             <select
-                              className="sa-admin-select"
-                              value={user.role}
-                              aria-label={`Função de ${user.nickname}`}
+                              className="sa-admin-select sa-admin-select--user-type"
+                              value={type}
+                              disabled={typeLocked}
+                              aria-label={`Tipo de usuário de ${user.nickname}`}
+                              title={
+                                typeLocked
+                                  ? actorType === 'admin'
+                                    ? 'Admin normal não altera tipos de usuário'
+                                    : actorType === 'admin_full' && type === 'admin_master'
+                                      ? 'Admin Full não pode alterar Admin Master'
+                                      : 'Sem permissão para alterar este tipo'
+                                  : USER_TYPE_OPTIONS.find((o) => o.value === type)?.description
+                              }
                               onChange={(e) =>
-                                adminUpdateUser(user.id, {
-                                  role: e.target.value as UserRole,
-                                })
+                                handleUserTypeChange(
+                                  user.id,
+                                  e.target.value as UserType,
+                                  type
+                                )
                               }
                             >
-                              {ROLE_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
+                              {USER_TYPE_OPTIONS.map((opt) => {
+                                const allowed = canAssignUserType(actorType, type, opt.value);
+                                return (
+                                  <option
+                                    key={opt.value}
+                                    value={opt.value}
+                                    disabled={!allowed}
+                                    title={opt.description}
+                                  >
+                                    {opt.label}
+                                  </option>
+                                );
+                              })}
                             </select>
+                            <div className="sa-admin-user-type-hint">
+                              {USER_TYPE_OPTIONS.find((o) => o.value === type)?.description}
+                            </div>
                           </td>
                           <td>
                             <span className="sa-admin-email">
@@ -360,44 +457,23 @@ export const AdminDashboard: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            <span
-                              className={`sa-admin-badge ${
-                                user.status === 'online'
-                                  ? 'sa-admin-badge--online'
-                                  : user.status === 'in-game'
-                                    ? 'sa-admin-badge--ingame'
-                                    : 'sa-admin-badge--offline'
-                              }`}
-                            >
-                              {user.status === 'in-game' ? 'In-game' : user.status}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`sa-admin-btn${user.isAdmin ? ' sa-admin-btn--primary' : ''}`}
-                              disabled={isSelf && user.isAdmin}
-                              title={
-                                isSelf && user.isAdmin
-                                  ? 'Você não pode remover o próprio admin'
-                                  : undefined
-                              }
-                              onClick={() =>
-                                adminUpdateUser(user.id, { isAdmin: !user.isAdmin })
-                              }
-                            >
-                              {user.isAdmin ? (
-                                <>
-                                  <Shield className="w-3.5 h-3.5" aria-hidden />
-                                  Sim
-                                </>
-                              ) : (
-                                <>
-                                  <ShieldOff className="w-3.5 h-3.5" aria-hidden />
-                                  Não
-                                </>
-                              )}
-                            </button>
+                            {!isActive ? (
+                              <span className="sa-admin-badge sa-admin-badge--inactive">
+                                Desativada
+                              </span>
+                            ) : (
+                              <span
+                                className={`sa-admin-badge ${
+                                  user.status === 'online'
+                                    ? 'sa-admin-badge--online'
+                                    : user.status === 'in-game'
+                                      ? 'sa-admin-badge--ingame'
+                                      : 'sa-admin-badge--offline'
+                                }`}
+                              >
+                                {user.status === 'in-game' ? 'In-game' : user.status}
+                              </span>
+                            )}
                           </td>
                           <td>
                             <div className="sa-admin-actions">
@@ -410,12 +486,144 @@ export const AdminDashboard: React.FC = () => {
                               </Link>
                               <button
                                 type="button"
-                                className="sa-admin-btn sa-admin-btn--danger"
+                                className={`sa-admin-btn${isActive ? ' sa-admin-btn--danger' : ' sa-admin-btn--primary'}`}
                                 disabled={isSelf}
-                                title={isSelf ? 'Não é possível remover a si mesmo' : 'Remover'}
-                                onClick={() => confirmDeleteUser(user.id, user.nickname)}
+                                title={
+                                  isSelf
+                                    ? 'Não é possível desativar a própria conta'
+                                    : isActive
+                                      ? 'Desativar conta'
+                                      : 'Ativar conta'
+                                }
+                                onClick={() =>
+                                  confirmToggleAccount(user.id, user.nickname, isActive)
+                                }
+                              >
+                                <UserX className="w-3.5 h-3.5" aria-hidden />
+                                {isActive ? 'Desativar conta' : 'Ativar conta'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        )}
+
+        {tab === 'teams' && (
+          <section className="sa-admin-panel" aria-label="Gestão de equipes">
+            <div className="sa-admin-toolbar">
+              <div className="sa-admin-search">
+                <Search className="sa-admin-search__icon" aria-hidden />
+                <input
+                  className="sa-admin-search__input"
+                  type="search"
+                  placeholder="Buscar nome, TAG ou capitão…"
+                  value={teamQuery}
+                  onChange={(e) => setTeamQuery(e.target.value)}
+                  aria-label="Buscar equipes"
+                />
+              </div>
+              <div className="sa-admin-filters" role="group" aria-label="Filtros de equipe">
+                {(
+                  [
+                    ['all', 'Todas'],
+                    ['full', 'Completas'],
+                    ['incomplete', 'Incompletas'],
+                    ['titled', 'Com títulos'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`sa-admin-chip${teamFilter === key ? ' sa-admin-chip--active' : ''}`}
+                    onClick={() => setTeamFilter(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="sa-admin-table-wrap">
+              {filteredTeams.length === 0 ? (
+                <div className="sa-admin-empty">Nenhuma equipe encontrada.</div>
+              ) : (
+                <table className="sa-admin-table">
+                  <thead>
+                    <tr>
+                      <th>Equipe</th>
+                      <th>Capitão</th>
+                      <th>Membros</th>
+                      <th>Títulos</th>
+                      <th>Criada em</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTeams.map((team) => {
+                      const isFull = team.members.length >= team.maxMembers;
+                      return (
+                        <tr key={team.id}>
+                          <td>
+                            <div className="sa-admin-user">
+                              {isImageSrc(team.logo) ? (
+                                <img
+                                  className="sa-admin-user__avatar"
+                                  src={team.logo}
+                                  alt=""
+                                />
+                              ) : (
+                                <span className="sa-admin-team-logo" aria-hidden>
+                                  {team.logo || '🛡️'}
+                                </span>
+                              )}
+                              <div className="sa-admin-user__meta">
+                                <div className="sa-admin-user__nick">[{team.tag}]</div>
+                                <div className="sa-admin-user__name">{team.name}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="sa-admin-email">{team.captainNickname}</span>
+                          </td>
+                          <td>
+                            <span
+                              className={
+                                isFull ? 'sa-admin-badge sa-admin-badge--online' : 'sa-admin-email'
+                              }
+                            >
+                              {team.members.length}/{team.maxMembers}
+                            </span>
+                          </td>
+                          <td>{team.stats.titles}</td>
+                          <td>
+                            <span className="sa-admin-email">{team.createdAt}</span>
+                          </td>
+                          <td>
+                            <div className="sa-admin-actions">
+                              <Link
+                                to={paths.team(team.id)}
+                                className="sa-admin-btn sa-admin-btn--ghost"
+                                title="Ver página da equipe"
+                              >
+                                <Eye className="w-3.5 h-3.5" aria-hidden />
+                                Ver
+                              </Link>
+                              <button
+                                type="button"
+                                className="sa-admin-btn sa-admin-btn--danger"
+                                title="Remover equipe"
+                                onClick={() =>
+                                  confirmDeleteTeam(team.id, team.name, team.tag)
+                                }
                               >
                                 <Trash2 className="w-3.5 h-3.5" aria-hidden />
+                                Remover
                               </button>
                             </div>
                           </td>

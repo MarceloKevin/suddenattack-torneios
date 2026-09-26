@@ -1,5 +1,68 @@
 export type UserRole = 'player' | 'captain' | 'coach' | 'admin';
+/** Tipo de conta na plataforma (poderes / título) */
+export type UserType =
+  | 'admin_master'
+  | 'admin_full'
+  | 'admin'
+  | 'streamer'
+  | 'player';
 export type UserStatus = 'online' | 'in-game' | 'offline';
+
+export const USER_TYPE_LABELS: Record<UserType, string> = {
+  admin_master: 'Admin Master',
+  admin_full: 'Admin Full',
+  admin: 'Admin',
+  streamer: 'Streamer',
+  player: 'Player',
+};
+
+export const USER_TYPE_DESCRIPTIONS: Record<UserType, string> = {
+  admin_master: 'Admin com 100% de poder sobre o sistema',
+  admin_full:
+    'Admin abaixo do Admin Master; pode tudo menos colocar outros usuários como Admin Master',
+  admin: 'Admin normal; pode administrar os torneios',
+  streamer: 'Apenas o título de streamer, sem poder de admin',
+  player: 'Perfil normal do player, sem poder de admin',
+};
+
+export const USER_TYPE_OPTIONS = (
+  Object.keys(USER_TYPE_LABELS) as UserType[]
+).map((value) => ({
+  value,
+  label: USER_TYPE_LABELS[value],
+  description: USER_TYPE_DESCRIPTIONS[value],
+}));
+
+export const isAdminUserType = (type?: UserType | null) =>
+  type === 'admin_master' || type === 'admin_full' || type === 'admin';
+
+export const resolveUserType = (user: {
+  userType?: UserType;
+  isAdmin?: boolean;
+  role?: UserRole;
+}): UserType => {
+  if (user.userType) return user.userType;
+  if (user.isAdmin || user.role === 'admin') return 'admin_master';
+  return 'player';
+};
+
+export const canManageUserTypes = (actorType: UserType) =>
+  actorType === 'admin_master' || actorType === 'admin_full';
+
+/** Admin Full não promove/demove Admin Master; Admin comum não altera tipos. */
+export const canAssignUserType = (
+  actorType: UserType,
+  targetCurrentType: UserType,
+  nextType: UserType
+) => {
+  if (actorType === 'admin_master') return true;
+  if (actorType === 'admin_full') {
+    if (targetCurrentType === 'admin_master') return false;
+    if (nextType === 'admin_master') return false;
+    return true;
+  }
+  return false;
+};
 
 export interface UserStats {
   matches: number;
@@ -34,8 +97,13 @@ export interface User {
   avatar: string;
   banner?: string;
   status: UserStatus;
+  /** Papel no time / legado (capitão, player…) — não é o tipo de conta admin */
   role: UserRole;
+  /** Tipo de usuário na plataforma (Admin Master, Streamer, Player…) */
+  userType?: UserType;
   isAdmin: boolean;
+  /** false = conta desativada pelo admin (permanece no sistema) */
+  accountActive?: boolean;
   teamId?: string;
   stats: UserStats;
   joinedAt: string;

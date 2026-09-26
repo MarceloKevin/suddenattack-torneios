@@ -32,6 +32,7 @@ import saelLogo from '../assets/sael-logo.png';
 import { resolveTeamLogo } from '../utils/teamLogo';
 import { isImageSrc } from '../components/profile/shared';
 import '../components/tournament/TournamentDetails.css';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type TournamentTab = 'geral' | 'teams' | 'tabela' | 'bracket' | 'partidas' | 'rules';
 
@@ -69,6 +70,8 @@ export const TournamentDetails: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<TournamentTeamRef | null>(null);
 
   const tournament = tournaments.find((t) => t.id === id);
+  useDocumentTitle(tournament?.name);
+
   const groups = tournament?.groups ?? [];
   const confirmedTeams = useMemo(
     () => getConfirmedTeams(tournament?.registeredTeams ?? []),

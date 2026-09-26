@@ -13,6 +13,7 @@ import {
   cleanSocialLinks,
 } from '../utils/socialNetworks';
 import { paths } from '../utils/paths';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const DEFAULT_BANNER =
   'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1600&h=500&fit=crop&q=80';
@@ -49,6 +50,8 @@ export const Settings: React.FC = () => {
   const [banner, setBanner] = useState('');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
+
+  useDocumentTitle('Configurações');
 
   useEffect(() => {
     if (!currentUser) return;

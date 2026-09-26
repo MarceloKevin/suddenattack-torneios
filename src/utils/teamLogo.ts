@@ -1,9 +1,9 @@
+import teamfrostLogo from '../assets/teams/teamfrost-logo.png';
 import { isImageSrc } from '../components/profile/shared';
 
 /** Fallback de logo (imagem) quando o registro do torneio ainda usa emoji. */
 export const TEAM_LOGO_BY_ID: Record<string, string> = {
-  'team-sk':
-    'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=300&h=300&fit=crop&q=80',
+  'team-sk': teamfrostLogo,
   'team-dw':
     'https://images.unsplash.com/photo-1614680376576-c42917ad4c0a?w=300&h=300&fit=crop&q=80',
   'team-alpha':

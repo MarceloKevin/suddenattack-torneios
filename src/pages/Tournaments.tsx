@@ -5,11 +5,14 @@ import { TournamentCard } from '../components/tournament/TournamentCard';
 import { PlusCircle, Search, Trophy } from 'lucide-react';
 import rankingBg from '../assets/ranking-bg.png';
 import '../components/tournament/Tournaments.css';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const TournamentsPage: React.FC = () => {
   const { tournaments, currentUser } = useAuth();
   const [filter, setFilter] = useState<'all' | 'active' | 'open' | 'finished'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  useDocumentTitle('Torneios Sudden Attack');
 
   const activeTournaments = tournaments.filter(
     (t) => t.status === 'active' || t.status === 'open'
