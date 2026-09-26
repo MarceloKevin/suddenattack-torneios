@@ -420,6 +420,10 @@ export interface Tournament {
   phaseFormats?: Partial<TournamentPhaseFormats>;
   /** Estrutura do campeonato (chave / grupos) */
   structure?: TournamentStructure;
+  /** Quantidade de grupos na fase de grupos */
+  groupCount?: number;
+  /** Quantos times avançam de cada grupo para o mata-mata */
+  qualifyPerGroup?: number;
   startDate: string;
   endDate: string;
   prizePool: string;

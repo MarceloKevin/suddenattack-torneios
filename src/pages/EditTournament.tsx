@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FolderInput,
   Plus,
   Pencil,
   RefreshCw,
@@ -44,7 +45,7 @@ import {
   resolvePhaseFormats,
 } from '../types';
 import { getTournamentMatches, matchStatusLabel, phaseLabel } from '../utils/matchHelpers';
-import { teamToRef } from '../utils/tournamentGenerator';
+import { formatGroupDistribution, teamToRef } from '../utils/tournamentGenerator';
 import { canEditBracketMatch, MatchSlot } from '../utils/bracketHelpers';
 import { TournamentBracket } from '../components/tournament/TournamentBracket';
 import { Modal } from '../components/ui/Modal';
@@ -112,6 +113,8 @@ export const EditTournament: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [maxTeams, setMaxTeams] = useState(16);
   const [structure, setStructure] = useState<TournamentStructure>('groups_single_elim');
+  const [groupCount, setGroupCount] = useState(4);
+  const [qualifyPerGroup, setQualifyPerGroup] = useState(2);
   const [groupFormat, setGroupFormat] = useState<TournamentFormat>('MD1');
   const [knockoutFormat, setKnockoutFormat] = useState<TournamentFormat>('MD3');
   const [finalFormat, setFinalFormat] = useState<TournamentFormat>('MD5');
@@ -128,6 +131,13 @@ export const EditTournament: React.FC = () => {
     teamTag: string;
     teamName: string;
   } | null>(null);
+  const [moveGroupSource, setMoveGroupSource] = useState<{
+    groupId: string;
+    groupName: string;
+    teamId: string;
+    teamTag: string;
+    teamName: string;
+  } | null>(null);
 
   // Sync form when tournament loads / changes id
   useEffect(() => {
@@ -138,6 +148,8 @@ export const EditTournament: React.FC = () => {
     setEndDate(tournament.endDate);
     setMaxTeams(tournament.maxTeams);
     setStructure(tournament.structure || 'groups_single_elim');
+    setGroupCount(tournament.groupCount ?? 4);
+    setQualifyPerGroup(tournament.qualifyPerGroup ?? 2);
     const phases = resolvePhaseFormats(tournament);
     setGroupFormat(phases.groups);
     setKnockoutFormat(phases.knockout);
@@ -234,6 +246,10 @@ export const EditTournament: React.FC = () => {
   /** Usa a estrutura salva; se ainda não houver, considera o valor do formulário */
   const hasGroupStage = isGroupsStructure(tournament?.structure ?? structure);
   const draftHasGroupStage = isGroupsStructure(structure);
+  const groupDistributionText = useMemo(
+    () => formatGroupDistribution(Number(maxTeams) || 0, Number(groupCount) || 0),
+    [maxTeams, groupCount]
+  );
 
   useEffect(() => {
     if (!hasGroupStage && tab === 'table') {
@@ -343,7 +359,6 @@ export const EditTournament: React.FC = () => {
       description: description.trim() || tournament.description,
       startDate,
       endDate,
-      maxTeams: Number(maxTeams),
       status,
       server: server.trim() || tournament.server,
       prizePool: prizePoolSummary.trim() || cleaned[0]?.reward || tournament.prizePool,
@@ -363,10 +378,16 @@ export const EditTournament: React.FC = () => {
       knockout: knockoutFormat,
       final: finalFormat,
     };
+    const withGroups = isGroupsStructure(structure);
     updateTournament(tournament.id, {
+      maxTeams: Math.max(2, Math.floor(Number(maxTeams) || 2)),
       structure,
       format: knockoutFormat,
       phaseFormats,
+      groupCount: withGroups ? Math.max(2, Math.min(8, Number(groupCount) || 4)) : undefined,
+      qualifyPerGroup: withGroups
+        ? Math.max(1, Math.min(4, Number(qualifyPerGroup) || 2))
+        : undefined,
     });
     flash('ok', 'Estrutura e formatos das partidas salvos.');
   };
@@ -715,6 +736,97 @@ export const EditTournament: React.FC = () => {
     setSwapSource(null);
   };
 
+  const moveTeamToGroup = (teamId: string, targetGroupId: string) => {
+    const groups = (tournament.groups ?? []).map((g) => ({
+      ...g,
+      standings: g.standings.map((s) => ({ ...s })),
+    }));
+
+    const sourceGroup = groups.find((g) => g.standings.some((s) => s.teamId === teamId));
+    const targetGroup = groups.find((g) => g.id === targetGroupId);
+
+    if (!sourceGroup || !targetGroup) {
+      flash('err', 'Não foi possível localizar o grupo de destino.');
+      setMoveGroupSource(null);
+      return;
+    }
+
+    if (sourceGroup.id === targetGroup.id) {
+      setMoveGroupSource(null);
+      return;
+    }
+
+    const standingIndex = sourceGroup.standings.findIndex((s) => s.teamId === teamId);
+    if (standingIndex < 0) {
+      flash('err', 'Time não encontrado no grupo atual.');
+      setMoveGroupSource(null);
+      return;
+    }
+
+    const [standing] = sourceGroup.standings.splice(standingIndex, 1);
+    const movedStanding: GroupStanding = {
+      ...standing,
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      roundsFor: 0,
+      roundsAgainst: 0,
+      points: 0,
+    };
+    targetGroup.standings.push(movedStanding);
+
+    const groupPhases = new Set(groups.map((g) => g.name));
+    const remainingMatches = (tournament.matches ?? []).filter((m) => {
+      const involves = m.team1.id === teamId || m.team2.id === teamId;
+      if (involves && groupPhases.has(m.phase)) return false;
+      return true;
+    });
+
+    let nextMatchNumber = remainingMatches.reduce(
+      (max, m) => Math.max(max, m.matchNumber),
+      0
+    );
+    const newMatches: TournamentMatch[] = [];
+    for (const opponent of targetGroup.standings) {
+      if (opponent.teamId === teamId) continue;
+      nextMatchNumber += 1;
+      newMatches.push({
+        id: `${tournament.id}-m-${nextMatchNumber}-${Date.now()}-${opponent.teamId}`,
+        phase: targetGroup.name,
+        matchNumber: nextMatchNumber,
+        team1: {
+          id: movedStanding.teamId,
+          name: movedStanding.teamName,
+          tag: movedStanding.teamTag,
+          logo: movedStanding.teamLogo,
+          score: 0,
+          isWinner: false,
+        },
+        team2: {
+          id: opponent.teamId,
+          name: opponent.teamName,
+          tag: opponent.teamTag,
+          logo: opponent.teamLogo,
+          score: 0,
+          isWinner: false,
+        },
+        status: 'SCHEDULED',
+        format: 'MD1',
+      });
+    }
+
+    updateTournament(tournament.id, {
+      groups,
+      matches: [...remainingMatches, ...newMatches],
+    });
+    flash(
+      'ok',
+      `[${movedStanding.teamTag}] movido de ${sourceGroup.name} para ${targetGroup.name}.`
+    );
+    setMoveGroupSource(null);
+  };
+
   return (
     <div className="sa-admin sa-edit">
       <div className="sa-admin__bg" aria-hidden>
@@ -883,35 +995,18 @@ export const EditTournament: React.FC = () => {
                 </div>
               </div>
 
-              <div className="sa-edit-grid-2">
-                <div>
-                  <label className="sa-edit-label">Máx. de times</label>
-                  <div className="sa-edit-field">
-                    <Users className="sa-edit-field__icon" aria-hidden />
-                    <select
-                      value={maxTeams}
-                      onChange={(e) => setMaxTeams(Number(e.target.value))}
-                      className="sa-edit-input sa-edit-input--select"
-                    >
-                      <option value={8}>8 equipes</option>
-                      <option value={16}>16 equipes</option>
-                      <option value={32}>32 equipes</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="sa-edit-label">Status</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as TournamentStatus)}
-                    className="sa-edit-input sa-edit-input--select sa-edit-input--full"
-                  >
-                    <option value="draft">Rascunho</option>
-                    <option value="open">Inscrições abertas</option>
-                    <option value="active">Em andamento</option>
-                    <option value="finished">Finalizado</option>
-                  </select>
-                </div>
+              <div>
+                <label className="sa-edit-label">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TournamentStatus)}
+                  className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                >
+                  <option value="draft">Rascunho</option>
+                  <option value="open">Inscrições abertas</option>
+                  <option value="active">Em andamento</option>
+                  <option value="finished">Finalizado</option>
+                </select>
               </div>
 
               <div>
@@ -1082,6 +1177,28 @@ export const EditTournament: React.FC = () => {
 
               <div className="sa-edit-structure-stack">
                 <div className="sa-edit-structure-field">
+                  <label className="sa-edit-label sa-edit-label--emphasis" htmlFor="edit-max-teams">
+                    Máx. de times
+                  </label>
+                  <p className="sa-edit-structure-field__desc">
+                    Limite de equipes confirmadas que o campeonato pode receber.
+                  </p>
+                  <div className="sa-edit-field">
+                    <Users className="sa-edit-field__icon" aria-hidden />
+                    <input
+                      id="edit-max-teams"
+                      type="number"
+                      min={2}
+                      step={1}
+                      value={maxTeams}
+                      onChange={(e) => setMaxTeams(Number(e.target.value))}
+                      className="sa-edit-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="sa-edit-structure-field">
                   <label className="sa-edit-label sa-edit-label--emphasis" htmlFor="edit-structure">
                     Estrutura do torneio
                   </label>
@@ -1106,6 +1223,65 @@ export const EditTournament: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                {draftHasGroupStage && (
+                  <>
+                    <div className="sa-edit-divider">
+                      <span>Configuração da fase de grupos</span>
+                    </div>
+
+                    <div className="sa-edit-structure-field">
+                      <label
+                        className="sa-edit-label sa-edit-label--emphasis"
+                        htmlFor="edit-group-count"
+                      >
+                        Quantidade de grupos
+                      </label>
+                      <p className="sa-edit-structure-field__desc">
+                        Quantos grupos a fase classificatória terá (A, B, C…).
+                      </p>
+                      <select
+                        id="edit-group-count"
+                        value={groupCount}
+                        onChange={(e) => setGroupCount(Number(e.target.value))}
+                        className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                      >
+                        {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                          <option key={n} value={n}>
+                            {n} grupos
+                          </option>
+                        ))}
+                      </select>
+                      {groupDistributionText && (
+                        <p className="sa-edit-group-distribution">{groupDistributionText}</p>
+                      )}
+                    </div>
+
+                    <div className="sa-edit-structure-field">
+                      <label
+                        className="sa-edit-label sa-edit-label--emphasis"
+                        htmlFor="edit-qualify-per-group"
+                      >
+                        Quantos passam por grupo
+                      </label>
+                      <p className="sa-edit-structure-field__desc">
+                        Quantas equipes de cada grupo avançam para o mata-mata.
+                      </p>
+                      <select
+                        id="edit-qualify-per-group"
+                        value={qualifyPerGroup}
+                        onChange={(e) => setQualifyPerGroup(Number(e.target.value))}
+                        className="sa-edit-input sa-edit-input--select sa-edit-input--full"
+                      >
+                        {[1, 2, 3, 4].map((n) => (
+                          <option key={n} value={n}>
+                            {n} {n === 1 ? 'equipe' : 'equipes'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div className="sa-edit-divider">
                   <span>Formato das partidas por fase</span>
@@ -1584,23 +1760,44 @@ export const EditTournament: React.FC = () => {
                                 </td>
                               ))}
                               <td>
-                                <button
-                                  type="button"
-                                  className="sa-admin-btn"
-                                  title="Trocar com outra equipe"
-                                  onClick={() =>
-                                    setSwapSource({
-                                      groupId: group.id,
-                                      groupName: group.name,
-                                      teamId: s.teamId,
-                                      teamTag: s.teamTag,
-                                      teamName: s.teamName,
-                                    })
-                                  }
-                                >
-                                  <ArrowLeftRight className="w-3.5 h-3.5" aria-hidden />
-                                  Trocar
-                                </button>
+                                <div className="sa-edit-group-actions">
+                                  <button
+                                    type="button"
+                                    className="sa-admin-btn"
+                                    title="Trocar com outra equipe"
+                                    onClick={() =>
+                                      setSwapSource({
+                                        groupId: group.id,
+                                        groupName: group.name,
+                                        teamId: s.teamId,
+                                        teamTag: s.teamTag,
+                                        teamName: s.teamName,
+                                      })
+                                    }
+                                  >
+                                    <ArrowLeftRight className="w-3.5 h-3.5" aria-hidden />
+                                    Trocar
+                                  </button>
+                                  {(tournament.groups ?? []).length > 1 && (
+                                    <button
+                                      type="button"
+                                      className="sa-admin-btn"
+                                      title="Mudar para outro grupo"
+                                      onClick={() =>
+                                        setMoveGroupSource({
+                                          groupId: group.id,
+                                          groupName: group.name,
+                                          teamId: s.teamId,
+                                          teamTag: s.teamTag,
+                                          teamName: s.teamName,
+                                        })
+                                      }
+                                    >
+                                      <FolderInput className="w-3.5 h-3.5" aria-hidden />
+                                      Mudar grupo
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1674,6 +1871,66 @@ export const EditTournament: React.FC = () => {
                   type="button"
                   className="sa-admin-btn"
                   onClick={() => setSwapSource(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(moveGroupSource)}
+          onClose={() => setMoveGroupSource(null)}
+          title="Mudar time de grupo"
+          size="md"
+        >
+          {moveGroupSource && (
+            <div className="sa-edit-swap">
+              <p className="sa-edit-swap__intro">
+                Escolha o novo grupo para{' '}
+                <strong>
+                  [{moveGroupSource.teamTag}] {moveGroupSource.teamName}
+                </strong>{' '}
+                (hoje em <strong>{moveGroupSource.groupName}</strong>). Os confrontos da fase
+                de grupos serão recalculados para o time.
+              </p>
+
+              <div className="sa-edit-swap__list">
+                {(tournament.groups ?? [])
+                  .filter((g) => g.id !== moveGroupSource.groupId)
+                  .map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      className="sa-edit-swap__item"
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          `Mover [${moveGroupSource.teamTag}] de ${moveGroupSource.groupName} para ${g.name}?\n\nOs confrontos de grupo deste time serão regenerados.`
+                        );
+                        if (!confirmed) return;
+                        moveTeamToGroup(moveGroupSource.teamId, g.id);
+                      }}
+                    >
+                      <span className="sa-edit-swap__item-main">
+                        <span className="sa-edit-swap__item-text">
+                          <span className="sa-admin-user__nick">{g.name}</span>
+                          <span className="sa-admin-user__name">
+                            {g.standings.length}{' '}
+                            {g.standings.length === 1 ? 'time' : 'times'} no grupo
+                          </span>
+                        </span>
+                      </span>
+                      <span className="sa-edit-swap__group-badge">Selecionar</span>
+                    </button>
+                  ))}
+              </div>
+
+              <div className="sa-edit-score__actions">
+                <button
+                  type="button"
+                  className="sa-admin-btn"
+                  onClick={() => setMoveGroupSource(null)}
                 >
                   Cancelar
                 </button>

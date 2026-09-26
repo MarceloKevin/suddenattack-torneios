@@ -14,6 +14,28 @@ const GROUP_NAMES = ['GRUPO A', 'GRUPO B', 'GRUPO C', 'GRUPO D', 'GRUPO E', 'GRU
 
 export { isDoubleElimStructure, isGroupsStructure };
 
+/** Distribui times nos grupos: resto vai para os primeiros (ex.: 16 em 3 → 6, 5, 5). */
+export const distributeTeamsPerGroup = (teamCount: number, groupCount: number): number[] => {
+  const groups = Math.max(1, Math.floor(groupCount));
+  const total = Math.max(0, Math.floor(teamCount));
+  const base = Math.floor(total / groups);
+  const remainder = total % groups;
+  return Array.from({ length: groups }, (_, i) => base + (i < remainder ? 1 : 0));
+};
+
+export const formatGroupDistribution = (teamCount: number, groupCount: number): string => {
+  const sizes = distributeTeamsPerGroup(teamCount, groupCount);
+  if (teamCount <= 0 || groupCount <= 0) return '';
+  const parts = sizes.map((size, i) => {
+    const label = GROUP_NAMES[i]?.replace('GRUPO ', '') ?? String(i + 1);
+    const teamWord = size === 1 ? 'time' : 'times';
+    return `${size} ${teamWord} no grupo ${label}`;
+  });
+  if (parts.length === 1) return `Com ${teamCount} equipes: ${parts[0]}.`;
+  if (parts.length === 2) return `Com ${teamCount} equipes: ${parts[0]} e ${parts[1]}.`;
+  return `Com ${teamCount} equipes: ${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}.`;
+};
+
 const shuffle = <T,>(list: T[]): T[] => {
   const arr = [...list];
   for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -139,11 +161,16 @@ const roundRobinPairs = (teams: TournamentTeamRef[]) => {
   return pairs;
 };
 
-const buildGroups = (teams: TournamentTeamRef[], tournamentId: string): TournamentGroup[] => {
+const buildGroups = (
+  teams: TournamentTeamRef[],
+  tournamentId: string,
+  configuredGroupCount?: number
+): TournamentGroup[] => {
   const shuffled = shuffle(teams);
+  const autoCount = Math.max(2, Math.ceil(shuffled.length / 4));
   const groupCount = Math.min(
     GROUP_NAMES.length,
-    Math.max(2, Math.ceil(shuffled.length / 4))
+    Math.max(2, configuredGroupCount ?? autoCount)
   );
   const groups: TournamentGroup[] = Array.from({ length: groupCount }, (_, i) => ({
     id: `${tournamentId}-group-${String.fromCharCode(97 + i)}`,
@@ -393,9 +420,13 @@ export const generateTournamentTable = (tournament: Tournament): GenerateTableRe
   const useGroups = isGroupsStructure(tournament.structure);
 
   if (useGroups && teams.length >= 4) {
-    const groups = buildGroups(teams, tournament.id);
+    const groups = buildGroups(teams, tournament.id, tournament.groupCount);
     const matches = buildGroupMatches(groups, teamsById, tournament.id, tournament.startDate);
-    const qualifiersNeeded = Math.min(8, groups.length * 2);
+    const perGroup = Math.max(1, tournament.qualifyPerGroup ?? 2);
+    const qualifiersNeeded = Math.min(
+      16,
+      Math.max(2, groups.length * perGroup)
+    );
     const brackets =
       qualifiersNeeded >= 2
         ? buildKnockoutForStructure(
